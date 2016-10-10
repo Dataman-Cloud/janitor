@@ -22,16 +22,16 @@ type Upstream struct {
 	Targets     []Target `json:"Target"`
 }
 
-func InitAndStart(Config config.Config, ctx context.Context) (*UpstreamSource, error) {
-	var upstreamSource UpstreamSource
+func InitAndStart(Config config.Config, ctx context.Context) (*UpstreamLoader, error) {
+	var upstreamLoader UpstreamLoader
 	var err error
 	switch strings.ToLower(Config.Upstream.SourceType) {
 	case "consul":
-		upstreamSource, err = InitConsulUpstreamSource(Config.Upstream.ConsulAddr, Config.Upstream.PollInterval)
+		upstreamLoader, err = InitConsulUpstreamLoader(Config.Upstream.ConsulAddr, Config.Upstream.PollInterval)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return &upstreamSource, nil
+	return &upstreamLoader, nil
 }
