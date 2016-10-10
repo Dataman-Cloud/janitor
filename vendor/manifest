@@ -44,6 +44,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/hashicorp/consul",
+			"repository": "https://github.com/hashicorp/consul",
+			"vcs": "git",
+			"revision": "eb44c4cf5d33c8d514e7b6c8187f25bb41a8476f",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/onsi/ginkgo",
 			"repository": "https://github.com/onsi/ginkgo",
 			"vcs": "git",

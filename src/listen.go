@@ -6,13 +6,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Dataman-Cloud/janitor/src/config"
+
 	"github.com/armon/go-proxyproto"
 )
 
-func listenAndServeHTTP(h http.Handler) {
+func listenAndServeHTTP(h http.Handler, ConfigProxy config.Proxy) {
 	srv := &http.Server{
 		Handler: h,
-		Addr:    "localhost:4576",
+		Addr:    ConfigProxy.Addr,
 	}
 
 	if err := serve(srv); err != nil {

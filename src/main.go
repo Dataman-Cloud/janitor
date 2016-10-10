@@ -1,23 +1,64 @@
 package main
 
 import (
-	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
-	"github.com/Dataman-Cloud/janitor/src/proxy"
 
 	log "github.com/Sirupsen/logrus"
+
 	//"github.com/urfave/cli"
 )
 
+var stopWait chan bool
+var cleanFuncs []func()
+
+func SetupLogger() {
+	// Log as JSON instead of the default ASCII formatter.
+	log.SetFormatter(&log.JSONFormatter{})
+
+	// Output to stderr instead of stdout, could also be a file.
+	log.SetOutput(os.Stderr)
+
+	// Only log the warning severity or above.
+	log.SetLevel(log.WarnLevel)
+}
+
+func LoadConfig() config.Config {
+	return config.DefaultConfig()
+}
+
+func TuneGolangProcess() {}
+
+func RegisterSignalHandler() {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigs
+
+		for _, fn := range cleanFuncs {
+			fn()
+		}
+
+		stopWait <- true
+	}()
+}
+
 func main() {
+	config := LoadConfig()
 
-	var stop chan struct{}
-	cfg := config.DefaultConfig()
-	httpProxy := proxy.NewHTTPProxy(&http.Transport{}, cfg.Proxy)
+	TuneGolangProcess()
+	SetupLogger()
 
-	log.Info("reverse proxy start to listen now")
-	go listenAndServeHTTP(httpProxy)
-	<-stop
+	server := NewJanitorServer(config)
+	server.Start()
+	cleanFuncs = append(cleanFuncs, func() {
+		server.Shutdown()
+	})
 
+	<-stopWait
+	//register signal handler
 }

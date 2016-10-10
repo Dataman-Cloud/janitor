@@ -7,17 +7,27 @@ import (
 
 func DefaultConfig() Config {
 	config := Config{
-		Proxy: Proxy{},
+		Proxy: Proxy{
+			Addr: "localhost:3456",
+		},
+		Upstream: Upstream{
+			SourceType:   "consul",
+			ConsulAddr:   "localhost:8500",
+			PollInterval: time.Second * 1,
+		},
 	}
 
 	return config
 }
 
 type Config struct {
-	Proxy Proxy
+	Proxy    Proxy
+	Upstream Upstream
 }
 
 type Proxy struct {
+	Addr string
+
 	Strategy              string
 	Matcher               string
 	NoRouteStatus         int
@@ -44,4 +54,10 @@ type CertSource struct {
 	CAUpgradeCN  string
 	Refresh      time.Duration
 	Header       http.Header
+}
+
+type Upstream struct {
+	SourceType   string // one of consul, file or somthing else
+	ConsulAddr   string
+	PollInterval time.Duration
 }
