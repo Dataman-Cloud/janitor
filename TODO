@@ -1,0 +1,18 @@
+1 As a API gateway, janitor should be able to foward any HTTP requests to avaliable backends.
+2 As a reverse proxy, janitor should be able to find avaliable backends and make sure only fowards requests to healthy backends.
+3 Way to discover health instances of a backend.
+4 Application requests metrics, extract information like throughout rate, fail rate, slow requests etc
+5 HTTPs support
+6 Websocket support
+7 HTTP API of this server
+8 Route table, how to map a requests to a specific backends
+9 Backend weights support / canary support in the future
+
+
+
+Later Maybe:
+1, Serve as a Dns Proxy server
+2, Raft protocol to synchorize with multiple instance of janitor
+3, Rate limit
+
+
