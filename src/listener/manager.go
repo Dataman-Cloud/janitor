@@ -1,8 +1,13 @@
 package listener
 
 import (
+	"fmt"
+	"net"
+
 	"github.com/Dataman-Cloud/janitor/src/config"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/armon/go-proxyproto"
 	"golang.org/x/net/context"
 )
 
@@ -16,13 +21,37 @@ const (
 )
 
 type Manager struct {
-	Mode      int
-	Listeners map[int]TcpKeepAliveListener
+	Mode      string
+	Listeners map[int]*proxyproto.Listener
+	Config    config.Listener
 }
 
 func InitManager(mode string, Config config.Listener) (*Manager, error) {
-	return &Manager{}, nil
+	manager := &Manager{}
+	manager.Mode = mode
+	manager.Listeners = make(map[int]*proxyproto.Listener)
+	manager.Config = Config
 
+	switch mode {
+	case SINGLE_LISTENER_MODE:
+		setupSingleListener(manager)
+	case MULTIPORT_LISTENER_MODE:
+	}
+
+	return manager, nil
+}
+
+func (manager *Manager) DefaultListener() *proxyproto.Listener {
+	return manager.Listeners[manager.Config.DefaultPort]
+}
+
+func setupSingleListener(manager *Manager) {
+	ln, err := net.Listen("tcp", net.JoinHostPort(manager.Config.IP.String(), fmt.Sprintf("%d", manager.Config.DefaultPort)))
+	if err != nil {
+		log.Fatal("[FATAL] ", err)
+	}
+
+	manager.Listeners[manager.Config.DefaultPort] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
 }
 
 func ManagerFromContext(ctx context.Context) *Manager {

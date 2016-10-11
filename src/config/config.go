@@ -7,7 +7,7 @@ import (
 )
 
 func DefaultConfig() Config {
-	ip := net.ParseIP("0.0.0.0")
+	ip := net.ParseIP("127.0.0.1")
 
 	config := Config{
 		Listener: Listener{
