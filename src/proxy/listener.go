@@ -1,4 +1,4 @@
-package main
+package proxy
 
 import (
 	"log"
@@ -11,7 +11,7 @@ import (
 	"github.com/armon/go-proxyproto"
 )
 
-func listenAndServeHTTP(h http.Handler, ConfigProxy config.Proxy) {
+func ListenAndServeHTTP(h http.Handler, ConfigProxy config.Proxy) {
 	srv := &http.Server{
 		Handler: h,
 		Addr:    ConfigProxy.Addr,

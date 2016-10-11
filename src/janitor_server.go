@@ -28,7 +28,7 @@ func (server *JanitorServer) Start() {
 	log.Info("JanitorServer Starting ...")
 
 	httpProxy := proxy.NewHTTPProxy(&http.Transport{}, server.Config.Proxy)
-	go listenAndServeHTTP(httpProxy, server.Config.Proxy)
+	go proxy.ListenAndServeHTTP(httpProxy, server.Config.Proxy)
 	log.Info("JanitorServer Listening now")
 
 	upstreamSource, err := upstream.InitAndStart(server.Config, server.Ctx)

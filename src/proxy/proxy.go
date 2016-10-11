@@ -21,7 +21,6 @@ func NewHTTPProxy(tr http.RoundTripper, cfg config.Proxy) http.Handler {
 }
 
 func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	t := target(r)
 	if t == nil {
 		w.WriteHeader(p.cfg.NoRouteStatus)
