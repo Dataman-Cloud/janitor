@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
+	"github.com/Dataman-Cloud/janitor/src/handler"
 	"github.com/Dataman-Cloud/janitor/src/listener"
-	"github.com/Dataman-Cloud/janitor/src/proxy"
 	"github.com/Dataman-Cloud/janitor/src/upstream"
 
 	log "github.com/Sirupsen/logrus"
@@ -30,7 +30,7 @@ func NewJanitorServer(Config config.Config) *JanitorServer {
 func (server *JanitorServer) Start() {
 	log.Info("JanitorServer Starting ...")
 
-	httpProxy := proxy.NewHTTPProxy(&http.Transport{}, server.Config.Proxy)
+	httpProxy := handler.NewHTTPProxy(&http.Transport{}, server.Config.Proxy)
 	log.Info("JanitorServer Listening now")
 	go listener.ListenAndServeHTTP(httpProxy, server.Config.Proxy)
 
