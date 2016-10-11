@@ -1,17 +1,19 @@
 package upstream
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/util"
 
 	log "github.com/Sirupsen/logrus"
 	consulApi "github.com/hashicorp/consul/api"
+	"golang.org/x/net/context"
 )
 
 const (
 	BORG_TAG = "foobar"
+
+	CONSUL_UPSTREAM_LOADER_KEY = "ConsulUpstreamLoader"
 )
 
 type UpstreamLoader interface {
@@ -28,6 +30,11 @@ type ConsulUpstreamLoader struct {
 	PollTicker   *time.Ticker
 
 	Upstreams []Upstream
+}
+
+func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader {
+	upstreamLoader := ctx.Value(CONSUL_UPSTREAM_LOADER_KEY)
+	return upstreamLoader.(*ConsulUpstreamLoader)
 }
 
 func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*ConsulUpstreamLoader, error) {
@@ -56,7 +63,6 @@ func (upstreamFromConsul *ConsulUpstreamLoader) Poll() {
 			latestUpstreams := make([]Upstream, 0)
 
 			services, _, err := upstreamFromConsul.ConsulClient.Catalog().Services(nil)
-			//fmt.Println(services)
 			if err != nil {
 				log.Errorf("poll upstream from consul got err: ", err)
 				return
@@ -91,15 +97,6 @@ func (upstreamFromConsul *ConsulUpstreamLoader) Poll() {
 			for _, u := range latestUpstreams {
 				upstreamFromConsul.Upstreams = append(upstreamFromConsul.Upstreams, u)
 			}
-
-			fmt.Println(len(upstreamFromConsul.Upstreams))
-
-			for _, u := range upstreamFromConsul.Upstreams {
-				fmt.Println(u.ServiceName)
-
-				fmt.Println(u.Targets)
-			}
-
 		}()
 	}
 }

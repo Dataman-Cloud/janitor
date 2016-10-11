@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
@@ -20,6 +21,7 @@ type JanitorServer struct {
 func NewJanitorServer(Config config.Config) *JanitorServer {
 	server := &JanitorServer{
 		Config: Config,
+		Ctx:    context.Background(),
 	}
 	return server
 }
@@ -31,11 +33,13 @@ func (server *JanitorServer) Start() {
 	go proxy.ListenAndServeHTTP(httpProxy, server.Config.Proxy)
 	log.Info("JanitorServer Listening now")
 
-	upstreamSource, err := upstream.InitAndStart(server.Config, server.Ctx)
+	upstreamLoader, err := upstream.InitAndStart(server.Config, server.Ctx)
 	if err != nil {
 		panic(err)
 	}
-	log.Debug(upstreamSource)
+	server.Ctx = context.WithValue(server.Ctx, upstream.CONSUL_UPSTREAM_LOADER_KEY, upstreamLoader)
+
+	fmt.Println(upstream.ConsulUpstreamLoaderFromContext(server.Ctx))
 }
 
 func (server *JanitorServer) Shutdown() {
