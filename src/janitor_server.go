@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
+	"github.com/Dataman-Cloud/janitor/src/listener"
 	"github.com/Dataman-Cloud/janitor/src/proxy"
 	"github.com/Dataman-Cloud/janitor/src/upstream"
 
@@ -30,16 +31,25 @@ func (server *JanitorServer) Start() {
 	log.Info("JanitorServer Starting ...")
 
 	httpProxy := proxy.NewHTTPProxy(&http.Transport{}, server.Config.Proxy)
-	go proxy.ListenAndServeHTTP(httpProxy, server.Config.Proxy)
 	log.Info("JanitorServer Listening now")
+	go listener.ListenAndServeHTTP(httpProxy, server.Config.Proxy)
 
-	upstreamLoader, err := upstream.InitAndStart(server.Config, server.Ctx)
+	log.Info("Upstream Loader started")
+	upstreamLoader, err := upstream.InitAndStart(server.Ctx, server.Config)
 	if err != nil {
 		panic(err)
 	}
 	server.Ctx = context.WithValue(server.Ctx, upstream.CONSUL_UPSTREAM_LOADER_KEY, upstreamLoader)
 
+	log.Info("ListenerManager started")
+	listenerManager, err := listener.InitManager(listener.SINGLE_LISTENER_MODE, server.Config.Listener)
+	if err != nil {
+		panic(err)
+	}
+	server.Ctx = context.WithValue(server.Ctx, listener.MANAGER_KEY, listenerManager)
+
 	fmt.Println(upstream.ConsulUpstreamLoaderFromContext(server.Ctx))
+	fmt.Println(listener.ManagerFromContext(server.Ctx))
 }
 
 func (server *JanitorServer) Shutdown() {

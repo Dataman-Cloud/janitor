@@ -22,7 +22,14 @@ type Upstream struct {
 	Targets     []Target `json:"Target"`
 }
 
-func InitAndStart(Config config.Config, ctx context.Context) (*UpstreamLoader, error) {
+type UpstreamLoader interface {
+	Poll()
+	List() []Upstream
+	Get(serviceName string) *Upstream
+	Remove(upstream *Upstream)
+}
+
+func InitAndStart(ctx context.Context, Config config.Config) (UpstreamLoader, error) {
 	var upstreamLoader UpstreamLoader
 	var err error
 	switch strings.ToLower(Config.Upstream.SourceType) {
@@ -33,5 +40,5 @@ func InitAndStart(Config config.Config, ctx context.Context) (*UpstreamLoader, e
 		}
 	}
 
-	return &upstreamLoader, nil
+	return upstreamLoader, nil
 }

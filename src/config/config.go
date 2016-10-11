@@ -1,14 +1,18 @@
 package config
 
 import (
+	"net"
 	"net/http"
 	"time"
 )
 
 func DefaultConfig() Config {
+	ip := net.ParseIP("0.0.0.0")
+
 	config := Config{
-		Proxy: Proxy{
-			Addr: "localhost:3456",
+		Listener: Listener{
+			IP:          ip,
+			DefaultPort: 3456,
 		},
 		Upstream: Upstream{
 			SourceType:   "consul",
@@ -23,11 +27,10 @@ func DefaultConfig() Config {
 type Config struct {
 	Proxy    Proxy
 	Upstream Upstream
+	Listener Listener
 }
 
 type Proxy struct {
-	Addr string
-
 	Strategy              string
 	Matcher               string
 	NoRouteStatus         int
@@ -60,4 +63,10 @@ type Upstream struct {
 	SourceType   string // one of consul, file or somthing else
 	ConsulAddr   string
 	PollInterval time.Duration
+}
+
+type Listener struct {
+	Mode        string
+	IP          net.IP
+	DefaultPort int
 }

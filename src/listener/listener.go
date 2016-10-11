@@ -1,4 +1,4 @@
-package proxy
+package listener
 
 import (
 	"log"
@@ -14,7 +14,7 @@ import (
 func ListenAndServeHTTP(h http.Handler, ConfigProxy config.Proxy) {
 	srv := &http.Server{
 		Handler: h,
-		Addr:    ConfigProxy.Addr,
+		Addr:    "",
 	}
 
 	if err := serve(srv); err != nil {
@@ -28,7 +28,7 @@ func serve(srv *http.Server) error {
 		log.Fatal("[FATAL] ", err)
 	}
 
-	ln = &proxyproto.Listener{Listener: tcpKeepAliveListener{ln.(*net.TCPListener)}}
+	ln = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
 
 	return srv.Serve(ln)
 }
@@ -38,11 +38,11 @@ func serve(srv *http.Server) error {
 // connections. It's used by ListenAndServe and ListenAndServeTLS so
 // dead TCP connections (e.g. closing laptop mid-download) eventually
 // go away.
-type tcpKeepAliveListener struct {
+type TcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+func (ln TcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	tc, err := ln.AcceptTCP()
 	if err != nil {
 		return

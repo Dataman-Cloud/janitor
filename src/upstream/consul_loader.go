@@ -16,13 +16,6 @@ const (
 	CONSUL_UPSTREAM_LOADER_KEY = "ConsulUpstreamLoader"
 )
 
-type UpstreamLoader interface {
-	Poll()
-	List() []Upstream
-	Get(serviceName string) *Upstream
-	Remove(upstream *Upstream)
-}
-
 type ConsulUpstreamLoader struct {
 	UpstreamLoader
 
@@ -51,7 +44,7 @@ func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*C
 	upstreamFromConsul.PollTicker = time.NewTicker(pollInterval)
 	upstreamFromConsul.Upstreams = make([]Upstream, 0)
 
-	upstreamFromConsul.Poll()
+	go upstreamFromConsul.Poll()
 
 	return upstreamFromConsul, nil
 }
@@ -60,6 +53,7 @@ func (upstreamFromConsul *ConsulUpstreamLoader) Poll() {
 	for {
 		<-upstreamFromConsul.PollTicker.C
 		go func() {
+			log.Debug("consul upstream loader loading services form consul")
 			latestUpstreams := make([]Upstream, 0)
 
 			services, _, err := upstreamFromConsul.ConsulClient.Catalog().Services(nil)

@@ -38,7 +38,6 @@ func RegisterSignalHandler() {
 
 	go func() {
 		<-sigs
-
 		for _, fn := range cleanFuncs {
 			fn()
 		}
