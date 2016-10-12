@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
@@ -14,47 +13,70 @@ import (
 )
 
 type JanitorServer struct {
-	Ctx     context.Context
-	Config  config.Config
-	Running bool
+	upstreamLoader  upstream.UpstreamLoader
+	listenerManager *listener.Manager
+	handerFactory   *handler.Factory
+
+	ctx     context.Context
+	config  config.Config
+	running bool
 }
 
 func NewJanitorServer(Config config.Config) *JanitorServer {
 	server := &JanitorServer{
-		Config: Config,
-		Ctx:    context.Background(),
+		config:        Config,
+		ctx:           context.Background(),
+		handerFactory: handler.NewFactory(Config.HttpHandler),
 	}
 	return server
 }
 
 func (server *JanitorServer) Start() {
 	log.Info("JanitorServer Starting ...")
+	err := server.setupUpstreamLoader()
+	if err != nil {
+		log.Fatalf("Setup Upstream Loader Got err: %s", err)
+	}
 
-	handler := handler.NewHTTPProxy(&http.Transport{}, server.Config.HttpHandler)
-	log.Info("JanitorServer Listening now")
-	log.Info(handler)
+	err = server.setupListenerManager()
+	if err != nil {
+		log.Fatalf("Setup Listener Manager Got err: %s", err)
+	}
 
+	server.Run()
+}
+
+func (server *JanitorServer) setupUpstreamLoader() error {
 	log.Info("Upstream Loader started")
-	upstreamLoader, err := upstream.InitAndStart(server.Ctx, server.Config)
+	upstreamLoader, err := upstream.InitAndStart(server.ctx, server.config)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	server.Ctx = context.WithValue(server.Ctx, upstream.CONSUL_UPSTREAM_LOADER_KEY, upstreamLoader)
+	server.ctx = context.WithValue(server.ctx, upstream.CONSUL_UPSTREAM_LOADER_KEY, upstreamLoader)
+	server.upstreamLoader = upstreamLoader
+	return nil
+}
 
+func (server *JanitorServer) setupListenerManager() error {
 	log.Info("ListenerManager started")
-	listenerManager, err := listener.InitManager(listener.SINGLE_LISTENER_MODE, server.Config.Listener)
+	listenerManager, err := listener.InitManager(listener.SINGLE_LISTENER_MODE, server.config.Listener)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	server.Ctx = context.WithValue(server.Ctx, listener.MANAGER_KEY, listenerManager)
+	server.listenerManager = listenerManager
+	server.ctx = context.WithValue(server.ctx, listener.MANAGER_KEY, listenerManager)
+	return nil
+}
+
+func (server *JanitorServer) newServicePod() error {
+	return nil
+}
+
+func (server *JanitorServer) Run() {
 	srv := &http.Server{
-		Handler: handler,
+		Handler: server.handerFactory.HttpHandler(),
 	}
-	srv.Serve(listenerManager.DefaultListener())
-
-	fmt.Println(upstream.ConsulUpstreamLoaderFromContext(server.Ctx))
-	fmt.Println(listener.ManagerFromContext(server.Ctx))
+	srv.Serve(server.listenerManager.DefaultListener())
 }
 
-func (server *JanitorServer) Shutdown() {
-}
+func (server *JanitorServer) Shutdown() {}

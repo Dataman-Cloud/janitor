@@ -22,16 +22,21 @@ func DefaultConfig() Config {
 		HttpHandler: HttpHandler{
 			FlushInterval: time.Second * 1,
 		},
+		HttpProxyServer: HttpProxyServer{
+			ReadTimeout:  time.Second * 1,
+			WriteTimeout: time.Second * 1,
+		},
 	}
 
 	return config
 }
 
 type Config struct {
-	Proxy       Proxy
-	Upstream    Upstream
-	Listener    Listener
-	HttpHandler HttpHandler
+	Proxy           Proxy
+	Upstream        Upstream
+	Listener        Listener
+	HttpHandler     HttpHandler
+	HttpProxyServer HttpProxyServer
 }
 
 type Proxy struct {
@@ -77,4 +82,9 @@ type Listener struct {
 
 type HttpHandler struct {
 	FlushInterval time.Duration
+}
+
+type HttpProxyServer struct {
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
 }
