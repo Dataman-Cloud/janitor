@@ -12,7 +12,7 @@ func DefaultConfig() Config {
 	config := Config{
 		Listener: Listener{
 			IP:          ip,
-			DefaultPort: 3456,
+			DefaultPort: "3456",
 		},
 		Upstream: Upstream{
 			SourceType:   "consul",
@@ -77,7 +77,7 @@ type Upstream struct {
 type Listener struct {
 	Mode        string
 	IP          net.IP
-	DefaultPort int
+	DefaultPort string
 }
 
 type HttpHandler struct {

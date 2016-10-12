@@ -60,7 +60,7 @@ func (server *JanitorServer) setupUpstreamLoader() error {
 
 func (server *JanitorServer) setupListenerManager() error {
 	log.Info("ListenerManager started")
-	listenerManager, err := listener.InitManager(listener.SINGLE_LISTENER_MODE, server.config.Listener)
+	listenerManager, err := listener.InitManager(listener.MULTIPORT_LISTENER_MODE, server.config.Listener)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (server *JanitorServer) Run() {
 		srv := &http.Server{
 			Handler: server.handerFactory.HttpHandler(upstream),
 		}
-		srv.Serve(server.listenerManager.DefaultListener())
+		srv.Serve(server.listenerManager.FetchListener(upstream.FrontendIp, upstream.FrontendPort))
 	}
 }
 
