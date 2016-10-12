@@ -91,9 +91,6 @@ func addHeaders(r *http.Request, cfg config.Proxy) error {
 
 func target(r *http.Request) *routing.Target {
 	url, _ := url.Parse("http://crosbymichael.com")
-	if r.URL.Path == "/skip" {
-		return nil
-	}
 	return &routing.Target{
 		URL: url,
 	}

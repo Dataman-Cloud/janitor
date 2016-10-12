@@ -1,6 +1,7 @@
 package upstream
 
 import (
+	"net/url"
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/util"
@@ -71,6 +72,9 @@ func (upstreamFromConsul *ConsulUpstreamLoader) Poll() {
 
 					var upstream Upstream
 					upstream.ServiceName = serviceName
+					upstream.FrontendBaseURL = url.URL{}
+					upstream.FrontendBaseURL.Scheme = "http"
+					upstream.FrontendBaseURL.Host = "crosbymichael.com:80"
 					upstream.Targets = make([]Target, 0)
 					for _, service := range catalogServices {
 						var target Target

@@ -11,7 +11,7 @@ import (
 // newRawProxy returns an HTTP handler which forwards data between
 // an incoming and outgoing TCP connection including the original request.
 // This handler establishes a new outgoing connection per request.
-func newRawProxy(t *url.URL) http.Handler {
+func newRawProxy(t url.URL) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		hj, ok := w.(http.Hijacker)

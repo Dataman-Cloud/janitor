@@ -36,6 +36,7 @@ func InitManager(mode string, Config config.Listener) (*Manager, error) {
 	case SINGLE_LISTENER_MODE:
 		setupSingleListener(manager)
 	case MULTIPORT_LISTENER_MODE:
+		// Do nothing
 	}
 
 	return manager, nil

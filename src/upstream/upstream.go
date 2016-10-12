@@ -1,6 +1,7 @@
 package upstream
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
@@ -18,8 +19,9 @@ type Target struct {
 }
 
 type Upstream struct {
-	ServiceName string   `json:"ServiceName"`
-	Targets     []Target `json:"Target"`
+	ServiceName     string `json:"ServiceName"`
+	FrontendBaseURL url.URL
+	Targets         []Target `json:"Target"`
 }
 
 type UpstreamLoader interface {

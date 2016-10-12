@@ -53,11 +53,11 @@ func main() {
 	SetupLogger()
 
 	server := NewJanitorServer(config)
-	server.Start()
+	server.Init().Run()
 	cleanFuncs = append(cleanFuncs, func() {
 		server.Shutdown()
 	})
 
-	<-stopWait
+	//<-stopWait
 	//register signal handler
 }

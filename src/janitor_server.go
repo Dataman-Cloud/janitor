@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/handler"
@@ -31,8 +32,8 @@ func NewJanitorServer(Config config.Config) *JanitorServer {
 	return server
 }
 
-func (server *JanitorServer) Start() {
-	log.Info("JanitorServer Starting ...")
+func (server *JanitorServer) Init() *JanitorServer {
+	log.Info("JanitorServer Initialing ...")
 	err := server.setupUpstreamLoader()
 	if err != nil {
 		log.Fatalf("Setup Upstream Loader Got err: %s", err)
@@ -43,7 +44,7 @@ func (server *JanitorServer) Start() {
 		log.Fatalf("Setup Listener Manager Got err: %s", err)
 	}
 
-	server.Run()
+	return server
 }
 
 func (server *JanitorServer) setupUpstreamLoader() error {
@@ -73,10 +74,14 @@ func (server *JanitorServer) newServicePod() error {
 }
 
 func (server *JanitorServer) Run() {
-	srv := &http.Server{
-		Handler: server.handerFactory.HttpHandler(),
+	log.Info(server.upstreamLoader.List())
+	time.Sleep(time.Second * 10)
+	for _, upstream := range server.upstreamLoader.List() {
+		srv := &http.Server{
+			Handler: server.handerFactory.HttpHandler(upstream),
+		}
+		srv.Serve(server.listenerManager.DefaultListener())
 	}
-	srv.Serve(server.listenerManager.DefaultListener())
 }
 
 func (server *JanitorServer) Shutdown() {}
