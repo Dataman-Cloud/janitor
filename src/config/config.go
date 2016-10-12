@@ -19,15 +19,19 @@ func DefaultConfig() Config {
 			ConsulAddr:   "localhost:8500",
 			PollInterval: time.Second * 1,
 		},
+		HttpHandler: HttpHandler{
+			FlushInterval: time.Second * 1,
+		},
 	}
 
 	return config
 }
 
 type Config struct {
-	Proxy    Proxy
-	Upstream Upstream
-	Listener Listener
+	Proxy       Proxy
+	Upstream    Upstream
+	Listener    Listener
+	HttpHandler HttpHandler
 }
 
 type Proxy struct {
@@ -69,4 +73,8 @@ type Listener struct {
 	Mode        string
 	IP          net.IP
 	DefaultPort int
+}
+
+type HttpHandler struct {
+	FlushInterval time.Duration
 }

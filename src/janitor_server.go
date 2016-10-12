@@ -30,9 +30,9 @@ func NewJanitorServer(Config config.Config) *JanitorServer {
 func (server *JanitorServer) Start() {
 	log.Info("JanitorServer Starting ...")
 
-	httpProxy := handler.NewHTTPProxy(&http.Transport{}, server.Config.Proxy)
+	handler := handler.NewHTTPProxy(&http.Transport{}, server.Config.HttpHandler)
 	log.Info("JanitorServer Listening now")
-	go listener.ListenAndServeHTTP(httpProxy, server.Config.Proxy)
+	log.Info(handler)
 
 	log.Info("Upstream Loader started")
 	upstreamLoader, err := upstream.InitAndStart(server.Ctx, server.Config)
@@ -47,6 +47,10 @@ func (server *JanitorServer) Start() {
 		panic(err)
 	}
 	server.Ctx = context.WithValue(server.Ctx, listener.MANAGER_KEY, listenerManager)
+	srv := &http.Server{
+		Handler: handler,
+	}
+	srv.Serve(listenerManager.DefaultListener())
 
 	fmt.Println(upstream.ConsulUpstreamLoaderFromContext(server.Ctx))
 	fmt.Println(listener.ManagerFromContext(server.Ctx))
