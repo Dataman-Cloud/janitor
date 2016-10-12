@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-func newHTTPProxy(t url.URL, tr http.RoundTripper, flush time.Duration) http.Handler {
-	rp := httputil.NewSingleHostReverseProxy(&t)
+func newHTTPProxy(t *url.URL, tr http.RoundTripper, flush time.Duration) http.Handler {
+	rp := httputil.NewSingleHostReverseProxy(t)
 	rp.Transport = tr
 	rp.FlushInterval = flush
 	rp.Transport = &meteredRoundTripper{tr}

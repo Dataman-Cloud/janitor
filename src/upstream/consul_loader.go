@@ -1,7 +1,8 @@
 package upstream
 
 import (
-	"net/url"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/util"
@@ -12,7 +13,10 @@ import (
 )
 
 const (
-	BORG_TAG = "foobar"
+	BORG_TAG            = "borg"
+	BORG_FRONTEND_IP    = "borg-frontend-ip"
+	BORG_FRONTEND_PORT  = "borg-frontend-port"
+	BORG_FRONTEND_PROTO = "borg-frontend-proto"
 
 	CONSUL_UPSTREAM_LOADER_KEY = "ConsulUpstreamLoader"
 )
@@ -23,7 +27,7 @@ type ConsulUpstreamLoader struct {
 	ConsulClient *consulApi.Client
 	PollTicker   *time.Ticker
 
-	Upstreams []Upstream
+	Upstreams []*Upstream
 }
 
 func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader {
@@ -32,7 +36,7 @@ func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader 
 }
 
 func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*ConsulUpstreamLoader, error) {
-	upstreamFromConsul := &ConsulUpstreamLoader{}
+	consulUpstreamLoader := &ConsulUpstreamLoader{}
 
 	consulConfig := consulApi.DefaultConfig()
 	consulConfig.Address = consulAddr
@@ -41,23 +45,23 @@ func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*C
 	if err != nil {
 		return nil, err
 	}
-	upstreamFromConsul.ConsulClient = client
-	upstreamFromConsul.PollTicker = time.NewTicker(pollInterval)
-	upstreamFromConsul.Upstreams = make([]Upstream, 0)
+	consulUpstreamLoader.ConsulClient = client
+	consulUpstreamLoader.PollTicker = time.NewTicker(pollInterval)
+	consulUpstreamLoader.Upstreams = make([]*Upstream, 0)
 
-	go upstreamFromConsul.Poll()
+	go consulUpstreamLoader.Poll()
 
-	return upstreamFromConsul, nil
+	return consulUpstreamLoader, nil
 }
 
-func (upstreamFromConsul *ConsulUpstreamLoader) Poll() {
+func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 	for {
-		<-upstreamFromConsul.PollTicker.C
+		<-consulUpstreamLoader.PollTicker.C
 		go func() {
 			log.Debug("consul upstream loader loading services form consul")
-			latestUpstreams := make([]Upstream, 0)
+			latestUpstreams := make([]*Upstream, 0)
 
-			services, _, err := upstreamFromConsul.ConsulClient.Catalog().Services(nil)
+			services, _, err := consulUpstreamLoader.ConsulClient.Catalog().Services(nil)
 			if err != nil {
 				log.Errorf("poll upstream from consul got err: ", err)
 				return
@@ -65,17 +69,17 @@ func (upstreamFromConsul *ConsulUpstreamLoader) Poll() {
 
 			for serviceName, tags := range services {
 				if util.SliceContains(tags, BORG_TAG) {
-					catalogServices, _, err := upstreamFromConsul.ConsulClient.Catalog().Service(serviceName, BORG_TAG, nil)
+					catalogServices, _, err := consulUpstreamLoader.ConsulClient.Catalog().Service(serviceName, BORG_TAG, nil)
 					if err != nil {
 						log.Errorf("poll upstream from consul got err: ", err)
 					}
 
 					var upstream Upstream
 					upstream.ServiceName = serviceName
-					upstream.FrontendBaseURL = url.URL{}
-					upstream.FrontendBaseURL.Scheme = "http"
-					upstream.FrontendBaseURL.Host = "crosbymichael.com:80"
-					upstream.Targets = make([]Target, 0)
+					upstream.FrontendIp = FrontendIpFromTags(tags)
+					upstream.FrontendPort = FrontendPortFromTags(tags)
+					upstream.FrontendProto = FrontendProtoFromTags(tags)
+					upstream.Targets = make([]*Target, 0)
 					for _, service := range catalogServices {
 						var target Target
 						target.Address = service.Address
@@ -83,28 +87,62 @@ func (upstreamFromConsul *ConsulUpstreamLoader) Poll() {
 						target.ServiceName = service.ServiceName
 						target.Node = service.Node
 						target.ServiceAddress = service.ServiceAddress
-						target.ServicePort = service.ServicePort
-						upstream.Targets = append(upstream.Targets, target)
+						target.ServicePort = fmt.Sprintf("%d", service.ServicePort)
+						target.Upstream = &upstream
+						upstream.Targets = append(upstream.Targets, &target)
 					}
-					latestUpstreams = append(latestUpstreams, upstream)
+					latestUpstreams = append(latestUpstreams, &upstream)
 				}
 			}
 
 			//TODO mutex to sync with reading
-			upstreamFromConsul.Upstreams = make([]Upstream, 0)
+			consulUpstreamLoader.Upstreams = make([]*Upstream, 0)
 			for _, u := range latestUpstreams {
-				upstreamFromConsul.Upstreams = append(upstreamFromConsul.Upstreams, u)
+				consulUpstreamLoader.Upstreams = append(consulUpstreamLoader.Upstreams, u)
 			}
 		}()
 	}
 }
 
-func (upstreamFromConsul *ConsulUpstreamLoader) List() []Upstream {
-	return upstreamFromConsul.Upstreams
+func (consulUpstreamLoader *ConsulUpstreamLoader) List() []*Upstream {
+	return consulUpstreamLoader.Upstreams
 }
 
-func (upstreamFromConsul *ConsulUpstreamLoader) Get(serviceName string) *Upstream {
+func (consulUpstreamLoader *ConsulUpstreamLoader) Get(serviceName string) *Upstream {
 	return nil
 }
 
-func (upstreamFromConsul *ConsulUpstreamLoader) Remove(upstream *Upstream) {}
+func (consulUpstreamLoader *ConsulUpstreamLoader) Remove(upstream *Upstream) {}
+
+func FrontendIpFromTags(tags []string) string {
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, BORG_FRONTEND_IP) {
+			if len(strings.Split(tag, ":")) == 2 {
+				return strings.Split(tag, ":")[1]
+			}
+		}
+	}
+	return ""
+}
+
+func FrontendPortFromTags(tags []string) string {
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, BORG_FRONTEND_PORT) {
+			if len(strings.Split(tag, ":")) == 2 {
+				return strings.Split(tag, ":")[1]
+			}
+		}
+	}
+	return ""
+}
+
+func FrontendProtoFromTags(tags []string) string {
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, BORG_FRONTEND_PROTO) {
+			if len(strings.Split(tag, ":")) == 2 {
+				return strings.Split(tag, ":")[1]
+			}
+		}
+	}
+	return ""
+}

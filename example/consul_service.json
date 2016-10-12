@@ -1,0 +1,30 @@
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "Address": "192.168.59.103",
+  "TaggedAddresses": {
+    "lan": "192.168.1.103",
+    "wan": "10.0.10.10"
+  },
+  "Service": {
+    "ID": "mesos",
+    "Service": "mesos",
+    "Tags": [
+      "borg",
+      "mesos",
+      "borg-frontend-ip:0.0.0.0",
+      "borg-frontend-proto:http",
+      "borg-frontend-port:3412"
+    ],
+    "Address": "192.168.59.103",
+    "Port": 5100
+  },
+  "Check": {
+    "Node": "foobar",
+    "CheckID": "service:mesos",
+    "Name": "mesos health check",
+    "Notes": "Script based health check",
+    "Status": "passing",
+    "ServiceID": "mesos"
+  }
+}

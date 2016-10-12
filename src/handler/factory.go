@@ -15,6 +15,6 @@ func NewFactory(cfg config.HttpHandler) *Factory {
 	return &Factory{HttpHandlerCfg: cfg}
 }
 
-func (factory *Factory) HttpHandler(upstream upstream.Upstream) http.Handler {
-	return NewHTTPProxy(&http.Transport{}, factory.HttpHandlerCfg, upstream.FrontendBaseURL)
+func (factory *Factory) HttpHandler(upstream *upstream.Upstream) http.Handler {
+	return NewHTTPProxy(&http.Transport{}, factory.HttpHandlerCfg, upstream)
 }
