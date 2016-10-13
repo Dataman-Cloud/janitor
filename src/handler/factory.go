@@ -7,6 +7,8 @@ import (
 	"github.com/Dataman-Cloud/janitor/src/upstream"
 )
 
+const HANDLER_FACTORY_KEY = "handler_factory"
+
 type Factory struct {
 	HttpHandlerCfg config.HttpHandler
 }

@@ -16,7 +16,7 @@ const (
 )
 
 const (
-	MANAGER_KEY = "manager"
+	LISTENER_MANAGER_KEY = "listener_manager"
 )
 
 type ListenerKey struct {
@@ -47,7 +47,7 @@ func InitManager(mode string, Config config.Listener) (*Manager, error) {
 }
 
 func ManagerFromContext(ctx context.Context) *Manager {
-	manager := ctx.Value(MANAGER_KEY)
+	manager := ctx.Value(LISTENER_MANAGER_KEY)
 	return manager.(*Manager)
 }
 

@@ -13,6 +13,7 @@ type UpstreamLoader interface {
 	List() []*Upstream
 	Get(serviceName string) *Upstream
 	Remove(upstream *Upstream)
+	ChangeNotify() <-chan bool
 }
 
 func InitAndStartUpstreamLoader(ctx context.Context, Config config.Config) (UpstreamLoader, error) {

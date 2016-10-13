@@ -1,9 +1,6 @@
 package main
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/handler"
 	"github.com/Dataman-Cloud/janitor/src/listener"
@@ -25,9 +22,8 @@ type JanitorServer struct {
 
 func NewJanitorServer(Config config.Config) *JanitorServer {
 	server := &JanitorServer{
-		config:        Config,
-		ctx:           context.Background(),
-		handerFactory: handler.NewFactory(Config.HttpHandler),
+		config: Config,
+		ctx:    context.Background(),
 	}
 	return server
 }
@@ -43,6 +39,8 @@ func (server *JanitorServer) Init() *JanitorServer {
 	if err != nil {
 		log.Fatalf("Setup Listener Manager Got err: %s", err)
 	}
+
+	server.setupHandlerFactory()
 
 	return server
 }
@@ -65,22 +63,24 @@ func (server *JanitorServer) setupListenerManager() error {
 		return err
 	}
 	server.listenerManager = listenerManager
-	server.ctx = context.WithValue(server.ctx, listener.MANAGER_KEY, listenerManager)
+	server.ctx = context.WithValue(server.ctx, listener.LISTENER_MANAGER_KEY, listenerManager)
 	return nil
 }
 
-func (server *JanitorServer) newServicePod() error {
+func (server *JanitorServer) setupHandlerFactory() error {
+	log.Info("Setup handler factory")
+	handerFactory := handler.NewFactory(server.config.HttpHandler)
+	server.ctx = context.WithValue(server.ctx, handler.HANDLER_FACTORY_KEY, handerFactory)
+	server.handerFactory = handerFactory
 	return nil
 }
 
 func (server *JanitorServer) Run() {
-	log.Info(server.upstreamLoader.List())
-	time.Sleep(time.Second * 10)
-	for _, upstream := range server.upstreamLoader.List() {
-		srv := &http.Server{
-			Handler: server.handerFactory.HttpHandler(upstream),
-		}
-		srv.Serve(server.listenerManager.FetchListener(upstream.FrontendIp, upstream.FrontendPort))
+	for {
+		<-server.upstreamLoader.ChangeNotify()
+		log.Info("reloading listeners")
+		//for _, upstream := range server.upstreamLoader.List() {
+		//}
 	}
 }
 
