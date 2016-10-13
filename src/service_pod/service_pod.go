@@ -14,7 +14,7 @@ import (
 )
 
 type ServicePod struct {
-	Key      string
+	Key      upstream.UpstreamKey
 	Server   *http.Server
 	Ctx      context.Context
 	Listener *proxyproto.Listener
@@ -32,28 +32,35 @@ func NewServicePod(ctx context.Context, upstream *upstream.Upstream) *ServicePod
 		Upstream: upstream,
 	}
 
-	handerfactory_ := ctx.value(handler.HANDLER_FACTORY_KEY)
-	handerfactory := handerfactory_.(*handler.factory)
+	handerfactory_ := ctx.Value(handler.HANDLER_FACTORY_KEY)
+	handerfactory := handerfactory_.(*handler.Factory)
 
-	listenerManager_ := ctx.value(listener.LISTEN_MANAGER_KEY)
+	listenerManager_ := ctx.Value(listener.LISTENER_MANAGER_KEY)
 	listenerManager := listenerManager_.(*listener.Manager)
 
 	pod.Server = &http.Server{
-		Handler:  handerFactory.HttpHandler(upstream),
-		Listener: listenerManager.FetchListener(upstream.FrontendIp, upstream.FrontendPort),
+		Handler: handerfactory.HttpHandler(upstream),
 	}
 
+	pod.Listener = listenerManager.FetchListener(upstream.FrontendIp, upstream.FrontendPort)
 	return pod
+}
+
+func (pod *ServicePod) Invalid() {
+	// do nothing for the present
 }
 
 func (pod *ServicePod) Run() {
 	go func() {
-		pod.Server.Serve(pod.Listener)
+		err := pod.Server.Serve(pod.Listener)
+		if err != nil {
+			log.Error("error close listener for pod <%s>,  the error is [%s]", pod.Key, err)
+		}
+
 	}()
 }
 
 func (pod *ServicePod) Dispose() {
-	//<-pod.stopCh
 	err := pod.Listener.Close()
 	if err != nil {
 		log.Error("error close listener for pod <%s>,  the error is [%s]", pod.Key, err)

@@ -38,6 +38,10 @@ type UpstreamState struct {
 	upstream *Upstream
 }
 
+func (us UpstreamState) State() UpstreamStateEnum {
+	return us.state
+}
+
 func NewUpstreamState(u *Upstream, newState UpstreamStateEnum) *UpstreamState {
 	return &UpstreamState{
 		upstream: u,
