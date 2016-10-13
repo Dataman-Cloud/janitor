@@ -27,7 +27,8 @@ type ConsulUpstreamLoader struct {
 	ConsulClient *consulApi.Client
 	PollTicker   *time.Ticker
 
-	Upstreams []*Upstream
+	Upstreams     []*Upstream
+	ChangeTrigger chan bool
 }
 
 func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader {
@@ -76,9 +77,9 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 
 					var upstream Upstream
 					upstream.ServiceName = serviceName
-					upstream.FrontendIp = FrontendIpFromTags(tags)
-					upstream.FrontendPort = FrontendPortFromTags(tags)
-					upstream.FrontendProto = FrontendProtoFromTags(tags)
+					upstream.FrontendIp = ParseValueFromTags(BORG_FRONTEND_IP, tags)
+					upstream.FrontendPort = ParseValueFromTags(BORG_FRONTEND_PORT, tags)
+					upstream.FrontendProto = ParseValueFromTags(BORG_FRONTEND_PROTO, tags)
 					upstream.Targets = make([]*Target, 0)
 					for _, service := range catalogServices {
 						var target Target
@@ -114,31 +115,9 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Get(serviceName string) *Upstr
 
 func (consulUpstreamLoader *ConsulUpstreamLoader) Remove(upstream *Upstream) {}
 
-func FrontendIpFromTags(tags []string) string {
+func ParseValueFromTags(what string, tags []string) string {
 	for _, tag := range tags {
-		if strings.HasPrefix(tag, BORG_FRONTEND_IP) {
-			if len(strings.Split(tag, ":")) == 2 {
-				return strings.Split(tag, ":")[1]
-			}
-		}
-	}
-	return ""
-}
-
-func FrontendPortFromTags(tags []string) string {
-	for _, tag := range tags {
-		if strings.HasPrefix(tag, BORG_FRONTEND_PORT) {
-			if len(strings.Split(tag, ":")) == 2 {
-				return strings.Split(tag, ":")[1]
-			}
-		}
-	}
-	return ""
-}
-
-func FrontendProtoFromTags(tags []string) string {
-	for _, tag := range tags {
-		if strings.HasPrefix(tag, BORG_FRONTEND_PROTO) {
+		if strings.HasPrefix(tag, what) {
 			if len(strings.Split(tag, ":")) == 2 {
 				return strings.Split(tag, ":")[1]
 			}

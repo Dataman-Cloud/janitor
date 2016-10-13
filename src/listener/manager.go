@@ -1,7 +1,6 @@
 package listener
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
@@ -68,7 +67,6 @@ func setupSingleListener(manager *Manager) {
 
 func (manager *Manager) FetchListener(ip, port string) *proxyproto.Listener {
 	// need sync access
-	fmt.Println(ip)
 	listener := manager.Listeners[port]
 	if listener == nil {
 		ln, err := net.Listen("tcp", net.JoinHostPort(ip, port))
