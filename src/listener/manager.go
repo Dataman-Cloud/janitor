@@ -19,16 +19,21 @@ const (
 	MANAGER_KEY = "manager"
 )
 
+type ListenerKey struct {
+	Ip   string
+	Port string
+}
+
 type Manager struct {
 	Mode      string
-	Listeners map[string]*proxyproto.Listener
+	Listeners map[ListenerKey]*proxyproto.Listener
 	Config    config.Listener
 }
 
 func InitManager(mode string, Config config.Listener) (*Manager, error) {
 	manager := &Manager{}
 	manager.Mode = mode
-	manager.Listeners = make(map[string]*proxyproto.Listener)
+	manager.Listeners = make(map[ListenerKey]*proxyproto.Listener)
 	manager.Config = Config
 
 	switch mode {
@@ -52,8 +57,12 @@ func (manager *Manager) Shutdown() {
 	}
 }
 
+func (manager *Manager) DefaultListenerKey() ListenerKey {
+	return ListenerKey{Ip: manager.Config.IP.String(), Port: manager.Config.DefaultPort}
+}
+
 func (manager *Manager) DefaultListener() *proxyproto.Listener {
-	return manager.Listeners[manager.Config.DefaultPort]
+	return manager.Listeners[manager.DefaultListenerKey()]
 }
 
 func setupSingleListener(manager *Manager) {
@@ -62,28 +71,28 @@ func setupSingleListener(manager *Manager) {
 		log.Fatal("[FATAL] ", err)
 	}
 
-	manager.Listeners[manager.Config.DefaultPort] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
+	manager.Listeners[manager.DefaultListenerKey()] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
 }
 
 func (manager *Manager) FetchListener(ip, port string) *proxyproto.Listener {
-	// need sync access
-	listener := manager.Listeners[port]
+	key := ListenerKey{Ip: ip, Port: port}
+	listener := manager.Listeners[key]
 	if listener == nil {
 		ln, err := net.Listen("tcp", net.JoinHostPort(ip, port))
 		if err != nil {
 			log.Fatal("[FATAL] ", err)
 		}
 
-		manager.Listeners[port] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
+		manager.Listeners[key] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
 	}
 
-	return manager.Listeners[port]
+	return manager.Listeners[key]
 }
 
 func (manager *Manager) ListeningPorts() []string {
 	var ports []string
-	for port, _ := range manager.Listeners {
-		ports = append(ports, port)
+	for key, _ := range manager.Listeners {
+		ports = append(ports, key.Port)
 	}
 
 	return ports

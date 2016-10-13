@@ -1,8 +1,6 @@
 package loadbalance
 
 import (
-	"fmt"
-
 	"github.com/Dataman-Cloud/janitor/src/upstream"
 )
 
@@ -30,8 +28,5 @@ func (rr *RoundRobinLoaderBalancer) Seed(targets []*upstream.Target) {
 func (rr *RoundRobinLoaderBalancer) Next() *upstream.Target {
 	current := rr.Targets[rr.NextIndex]
 	rr.NextIndex = (rr.NextIndex + 1) % len(rr.Targets)
-	fmt.Println("xxxxxxxxxxxxxxxx")
-	fmt.Println(current.Entry())
-
 	return current
 }
