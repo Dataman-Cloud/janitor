@@ -6,27 +6,25 @@ import (
 
 type LoadBalancer interface {
 	Next() *upstream.Target
-	Seed(targets []*upstream.Target)
+	Seed(upstream *upstream.Upstream)
 }
 
 type RoundRobinLoaderBalancer struct {
-	Targets   []*upstream.Target
+	Upstream  *upstream.Upstream
 	NextIndex int
 }
 
 func NewRoundRobinLoaderBalancer() *RoundRobinLoaderBalancer {
-	return &RoundRobinLoaderBalancer{
-		Targets: make([]*upstream.Target, 0),
-	}
+	return &RoundRobinLoaderBalancer{}
 }
 
-func (rr *RoundRobinLoaderBalancer) Seed(targets []*upstream.Target) {
-	rr.Targets = targets
+func (rr *RoundRobinLoaderBalancer) Seed(upstream *upstream.Upstream) {
+	rr.Upstream = upstream
 	rr.NextIndex = 0
 }
 
 func (rr *RoundRobinLoaderBalancer) Next() *upstream.Target {
-	current := rr.Targets[rr.NextIndex]
-	rr.NextIndex = (rr.NextIndex + 1) % len(rr.Targets)
+	current := rr.Upstream.Targets[rr.NextIndex]
+	rr.NextIndex = (rr.NextIndex + 1) % len(rr.Upstream.Targets)
 	return current
 }

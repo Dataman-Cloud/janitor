@@ -39,6 +39,7 @@ func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader 
 func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*ConsulUpstreamLoader, error) {
 	consulUpstreamLoader := &ConsulUpstreamLoader{}
 
+	consulUpstreamLoader.ChangeTrigger = make(chan bool, 64)
 	consulConfig := consulApi.DefaultConfig()
 	consulConfig.Address = consulAddr
 

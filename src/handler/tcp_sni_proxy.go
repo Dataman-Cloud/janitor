@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
-	"github.com/Dataman-Cloud/janitor/src/routing"
+	"github.com/Dataman-Cloud/janitor/src/upstream"
 )
 
 // TCPProxy implements an SNI aware transparent TCP proxy which captures the
@@ -68,11 +68,11 @@ func (p *tcpSNIProxy) Serve(in net.Conn) {
 	//return
 	//}
 
-	var t routing.Target
+	var t upstream.Target
 
-	out, err := net.DialTimeout("tcp", t.URL.Host, p.cfg.DialTimeout)
+	out, err := net.DialTimeout("tcp", t.Entry().String(), p.cfg.DialTimeout)
 	if err != nil {
-		log.Print("[WARN] tcp+sni: cannot connect to upstream ", t.URL.Host)
+		log.Print("[WARN] tcp+sni: cannot connect to upstream ", t.Entry())
 		return
 	}
 	defer out.Close()

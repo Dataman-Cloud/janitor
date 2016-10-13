@@ -1,37 +1,5 @@
 package upstream
 
-import (
-	"fmt"
-	"net"
-	"net/url"
-	"strings"
-
-	"github.com/Dataman-Cloud/janitor/src/config"
-	log "github.com/Sirupsen/logrus"
-
-	"golang.org/x/net/context"
-)
-
-type Target struct {
-	Node           string
-	Address        string
-	ServiceName    string
-	ServiceID      string
-	ServiceAddress string
-	ServicePort    string
-	Upstream       *Upstream
-}
-
-func (t Target) Entry() *url.URL {
-	fmt.Println(net.JoinHostPort(t.ServiceAddress, t.ServicePort))
-	url, err := url.Parse(fmt.Sprintf("%s://%s", t.Upstream.FrontendProto, net.JoinHostPort(t.ServiceAddress, t.ServicePort)))
-	if err != nil {
-		log.Error("parse target.Address %s to url got err %s", t.Address, err)
-	}
-
-	return url
-}
-
 type Upstream struct {
 	ServiceName   string `json:"ServiceName"`
 	FrontendPort  string
@@ -41,23 +9,28 @@ type Upstream struct {
 	Targets []*Target `json:"Target"`
 }
 
-type UpstreamLoader interface {
-	Poll()
-	List() []*Upstream
-	Get(serviceName string) *Upstream
-	Remove(upstream *Upstream)
-}
+func (u *Upstream) Equal(u1 *Upstream) bool {
+	fieldsEqual := u.ServiceName == u1.ServiceName &&
+		u.FrontendPort == u1.FrontendPort &&
+		u.FrontendIp == u1.FrontendIp &&
+		u.FrontendProto == u1.FrontendProto
 
-func InitAndStart(ctx context.Context, Config config.Config) (UpstreamLoader, error) {
-	var upstreamLoader UpstreamLoader
-	var err error
-	switch strings.ToLower(Config.Upstream.SourceType) {
-	case "consul":
-		upstreamLoader, err = InitConsulUpstreamLoader(Config.Upstream.ConsulAddr, Config.Upstream.PollInterval)
-		if err != nil {
-			return nil, err
+	targetsSizeEqual := len(u.Targets) == len(u1.Targets)
+
+	targetsEqual := true
+	uTargets := make([]string, 0)
+	for _, t := range u.Targets {
+		uTargets = append(uTargets, t.ToString())
+	}
+	u1Targets := make([]string, 0)
+	for _, t := range u1.Targets {
+		u1Targets = append(u1Targets, t.ToString())
+	}
+	for index, targetStr := range uTargets {
+		if targetStr != uTargets[index] {
+			targetsEqual = false
 		}
 	}
 
-	return upstreamLoader, nil
+	return fieldsEqual && targetsSizeEqual && targetsEqual
 }

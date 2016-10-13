@@ -49,7 +49,7 @@ func (server *JanitorServer) Init() *JanitorServer {
 
 func (server *JanitorServer) setupUpstreamLoader() error {
 	log.Info("Upstream Loader started")
-	upstreamLoader, err := upstream.InitAndStart(server.ctx, server.config)
+	upstreamLoader, err := upstream.InitAndStartUpstreamLoader(server.ctx, server.config)
 	if err != nil {
 		return err
 	}

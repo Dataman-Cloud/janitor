@@ -4,11 +4,9 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
-	"github.com/Dataman-Cloud/janitor/src/routing"
 )
 
 // addHeaders adds/updates headers in request
@@ -89,12 +87,12 @@ func addHeaders(r *http.Request, cfg config.Proxy) error {
 	return nil
 }
 
-func target(r *http.Request) *routing.Target {
-	url, _ := url.Parse("http://crosbymichael.com")
-	return &routing.Target{
-		URL: url,
-	}
-}
+//func target(r *http.Request) *routing.Target {
+//url, _ := url.Parse("http://crosbymichael.com")
+//return &routing.Target{
+//URL: url,
+//}
+//}
 
 func localPort(r *http.Request) string {
 	if r == nil {
