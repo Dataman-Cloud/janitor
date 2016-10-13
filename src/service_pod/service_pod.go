@@ -1,6 +1,7 @@
 package service_pod
 
 import (
+	"fmt"
 	"net/http"
 
 	//"github.com/Dataman-Cloud/janitor/src/config"
@@ -42,7 +43,7 @@ func NewServicePod(ctx context.Context, upstream *upstream.Upstream) *ServicePod
 		Handler: handerfactory.HttpHandler(upstream),
 	}
 
-	pod.Listener = listenerManager.FetchListener(upstream.FrontendIp, upstream.FrontendPort)
+	pod.Listener = listenerManager.FetchListener(listener.ListenerKey{Ip: upstream.FrontendIp, Port: upstream.FrontendPort})
 	return pod
 }
 
@@ -52,17 +53,20 @@ func (pod *ServicePod) Invalid() {
 
 func (pod *ServicePod) Run() {
 	go func() {
+		fmt.Println("start runing pod")
 		err := pod.Server.Serve(pod.Listener)
 		if err != nil {
-			log.Error("error close listener for pod <%s>,  the error is [%s]", pod.Key, err)
+			log.Error("pod Run goroutine error  <%s>,  the error is [%s]", pod.Key, err)
 		}
-
 	}()
 }
 
 func (pod *ServicePod) Dispose() {
+	listenerManager_ := pod.Ctx.Value(listener.LISTENER_MANAGER_KEY)
+	listenerManager := listenerManager_.(*listener.Manager)
+	listenerManager.Remove(listener.ListenerKey{Ip: pod.Upstream.FrontendIp, Port: pod.Upstream.FrontendPort})
 	err := pod.Listener.Close()
 	if err != nil {
-		log.Error("error close listener for pod <%s>,  the error is [%s]", pod.Key, err)
+		log.Error("dispose error close listener for pod <%s>,  the error is [%s]", pod.Key, err)
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	//"time"
+	"fmt"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/handler"
@@ -83,23 +84,30 @@ func (server *JanitorServer) setupHandlerFactory() error {
 func (server *JanitorServer) Run() {
 	for {
 		<-server.upstreamLoader.ChangeNotify()
-		log.Info("reloading listeners")
 		for _, u := range server.upstreamLoader.List() {
 			switch u.State.State() {
 			case upstream.STATE_NEW:
+				log.Infof("create new service pod: %s", u.Key())
 				pod := service_pod.NewServicePod(server.ctx, u)
 				server.serviceManager.ServicePods[u.Key()] = pod
 				pod.Run()
 			case upstream.STATE_CHANGED:
+				log.Infof("update existing service pod: %s", u.Key())
 				server.serviceManager.ServicePods[u.Key()].Invalid()
-			case upstream.STATE_OUTDATED:
-				server.serviceManager.ServicePods[u.Key()].Dispose()
-				delete(server.serviceManager.ServicePods, u.Key())
-
 			}
-			//time.AfterFunc(5*time.Second, func() {
-			//pod.Dispose()
-			//})
+
+			u.SetState(upstream.STATE_LISTENING)
+		}
+
+		for _, u := range server.upstreamLoader.List() {
+			if u.StaleMark {
+				log.Infof("remove unused service pod: %s", u.Key())
+				server.serviceManager.ServicePods[u.Key()].Dispose()
+				fmt.Println(len(server.upstreamLoader.List()))
+				server.upstreamLoader.Remove(u)
+				fmt.Println(len(server.upstreamLoader.List()))
+				delete(server.serviceManager.ServicePods, u.Key())
+			}
 		}
 	}
 }

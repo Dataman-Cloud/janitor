@@ -94,8 +94,12 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 						oldStream.StaleMark = false
 					}
 
+					fmt.Println(oldStream.FieldsEqualButTargetsDiffer(&upstream))
+					fmt.Println(oldStream.StateIs(STATE_NEW))
+
 					if oldStream.FieldsEqualButTargetsDiffer(&upstream) && !oldStream.StateIs(STATE_NEW) {
 						oldStream.SetState(STATE_CHANGED)
+						oldStream.Targets = upstream.Targets // change targes
 					}
 				}
 

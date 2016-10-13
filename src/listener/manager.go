@@ -74,11 +74,10 @@ func setupSingleListener(manager *Manager) {
 	manager.Listeners[manager.DefaultListenerKey()] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
 }
 
-func (manager *Manager) FetchListener(ip, port string) *proxyproto.Listener {
-	key := ListenerKey{Ip: ip, Port: port}
+func (manager *Manager) FetchListener(key ListenerKey) *proxyproto.Listener {
 	listener := manager.Listeners[key]
 	if listener == nil {
-		ln, err := net.Listen("tcp", net.JoinHostPort(ip, port))
+		ln, err := net.Listen("tcp", net.JoinHostPort(key.Ip, key.Port))
 		if err != nil {
 			log.Fatal("[FATAL] ", err)
 		}
@@ -87,6 +86,10 @@ func (manager *Manager) FetchListener(ip, port string) *proxyproto.Listener {
 	}
 
 	return manager.Listeners[key]
+}
+
+func (manager *Manager) Remove(key ListenerKey) {
+	delete(manager.Listeners, key)
 }
 
 func (manager *Manager) ListeningPorts() []string {

@@ -7,17 +7,17 @@
     "wan": "10.0.10.10"
   },
   "Service": {
-    "ID": "mesos",
+    "ID": "mesos-3",
     "Service": "mesos",
     "Tags": [
       "borg",
       "mesos",
       "borg-frontend-ip:0.0.0.0",
       "borg-frontend-proto:http",
-      "borg-frontend-port:3412"
+      "borg-frontend-port:3413"
     ],
     "Address": "192.168.59.103",
-    "Port": 5100
+    "Port": 5098
   },
   "Check": {
     "Node": "foobar",

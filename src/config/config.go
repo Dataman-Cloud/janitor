@@ -17,7 +17,7 @@ func DefaultConfig() Config {
 		Upstream: Upstream{
 			SourceType:   "consul",
 			ConsulAddr:   "localhost:8500",
-			PollInterval: time.Second * 1,
+			PollInterval: time.Second * 5,
 		},
 		HttpHandler: HttpHandler{
 			FlushInterval: time.Second * 1,

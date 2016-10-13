@@ -49,9 +49,9 @@ func NewUpstreamState(u *Upstream, newState UpstreamStateEnum) *UpstreamState {
 	}
 }
 
-func (us UpstreamState) Update(newState UpstreamStateEnum) {
+func (us *UpstreamState) Update(newState UpstreamStateEnum) {
 	if us.state != newState {
-		log.Debugf("change state of upstream <%s> to [%s]", us.upstream.ToString(), newState)
+		log.Debugf("change state of upstream <%s> to [%s]", us.upstream.Key(), newState)
 		us.state = newState
 	}
 }
@@ -104,7 +104,7 @@ func (u *Upstream) FieldsEqualButTargetsDiffer(u1 *Upstream) bool {
 		u1Targets = append(u1Targets, t.ToString())
 	}
 	for index, targetStr := range uTargets {
-		if targetStr != uTargets[index] {
+		if targetStr != u1Targets[index] {
 			targetsEqual = false
 		}
 	}
