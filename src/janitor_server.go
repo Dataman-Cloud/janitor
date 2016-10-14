@@ -17,7 +17,7 @@ import (
 type JanitorServer struct {
 	upstreamLoader  upstream.UpstreamLoader
 	listenerManager *listener.Manager
-	handerFactory   *handler.Factory
+	handlerFactory  *handler.Factory
 	serviceManager  *service_pod.ServiceManager
 
 	ctx     context.Context
@@ -75,9 +75,9 @@ func (server *JanitorServer) setupListenerManager() error {
 
 func (server *JanitorServer) setupHandlerFactory() error {
 	log.Info("Setup handler factory")
-	handerFactory := handler.NewFactory(server.config.HttpHandler)
-	server.ctx = context.WithValue(server.ctx, handler.HANDLER_FACTORY_KEY, handerFactory)
-	server.handerFactory = handerFactory
+	handlerFactory := handler.NewFactory(server.config.HttpHandler)
+	server.ctx = context.WithValue(server.ctx, handler.HANDLER_FACTORY_KEY, handlerFactory)
+	server.handlerFactory = handlerFactory
 	return nil
 }
 

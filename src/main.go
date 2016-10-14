@@ -8,7 +8,6 @@ import (
 	"github.com/Dataman-Cloud/janitor/src/config"
 
 	log "github.com/Sirupsen/logrus"
-
 	//"github.com/urfave/cli"
 )
 
