@@ -103,10 +103,9 @@ func (server *JanitorServer) Run() {
 			if u.StaleMark {
 				log.Infof("remove unused service pod: %s", u.Key())
 				server.serviceManager.ServicePods[u.Key()].Dispose()
-				fmt.Println(len(server.upstreamLoader.List()))
-				server.upstreamLoader.Remove(u)
-				fmt.Println(len(server.upstreamLoader.List()))
 				delete(server.serviceManager.ServicePods, u.Key())
+
+				server.upstreamLoader.Remove(u)
 			}
 		}
 	}

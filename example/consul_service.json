@@ -7,7 +7,7 @@
     "wan": "10.0.10.10"
   },
   "Service": {
-    "ID": "mesos-3",
+    "ID": "mesos-2",
     "Service": "mesos",
     "Tags": [
       "borg",
@@ -25,6 +25,6 @@
     "Name": "mesos health check",
     "Notes": "Script based health check",
     "Status": "passing",
-    "ServiceID": "mesos"
+    "ServiceID": "mesos-2"
   }
 }
