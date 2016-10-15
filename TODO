@@ -16,3 +16,7 @@ Later Maybe:
 3, Rate limit
 
 
+
+# enhancement
+
+1, consider when service port changed but service name remain

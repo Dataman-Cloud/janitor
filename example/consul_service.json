@@ -8,7 +8,7 @@
   },
   "Service": {
     "ID": "mesos-1",
-    "Service": "mesos",
+    "Service": "mesos-foo",
     "Tags": [
       "borg",
       "mesos",
