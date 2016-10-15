@@ -1,9 +1,6 @@
 package main
 
 import (
-	//"time"
-	"fmt"
-
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/handler"
 	"github.com/Dataman-Cloud/janitor/src/listener"
@@ -27,9 +24,8 @@ type JanitorServer struct {
 
 func NewJanitorServer(Config config.Config) *JanitorServer {
 	server := &JanitorServer{
-		config:         Config,
-		ctx:            context.Background(),
-		serviceManager: service_pod.NewServiceManager(),
+		config: Config,
+		ctx:    context.Background(),
 	}
 	return server
 }
@@ -48,6 +44,7 @@ func (server *JanitorServer) Init() *JanitorServer {
 
 	server.setupHandlerFactory()
 
+	server.serviceManager = service_pod.NewServiceManager(server.ctx)
 	return server
 }
 
@@ -88,12 +85,11 @@ func (server *JanitorServer) Run() {
 			switch u.State.State() {
 			case upstream.STATE_NEW:
 				log.Infof("create new service pod: %s", u.Key())
-				pod := service_pod.NewServicePod(server.ctx, u)
-				server.serviceManager.ServicePods[u.Key()] = pod
+				pod := server.serviceManager.ForkNewServicePod(u)
 				pod.Run()
 			case upstream.STATE_CHANGED:
 				log.Infof("update existing service pod: %s", u.Key())
-				server.serviceManager.ServicePods[u.Key()].Invalid()
+				server.serviceManager.FetchServicePod(u.Key()).Invalid()
 			}
 
 			u.SetState(upstream.STATE_LISTENING)
@@ -102,10 +98,7 @@ func (server *JanitorServer) Run() {
 		for _, u := range server.upstreamLoader.List() {
 			if u.StaleMark {
 				log.Infof("remove unused service pod: %s", u.Key())
-				server.serviceManager.ServicePods[u.Key()].Dispose()
-				delete(server.serviceManager.ServicePods, u.Key())
-
-				server.upstreamLoader.Remove(u)
+				server.serviceManager.KillServicePod(u)
 			}
 		}
 	}
