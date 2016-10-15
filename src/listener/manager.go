@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
+	"github.com/Dataman-Cloud/janitor/src/upstream"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/armon/go-proxyproto"
@@ -19,21 +20,16 @@ const (
 	LISTENER_MANAGER_KEY = "listener_manager"
 )
 
-type ListenerKey struct {
-	Ip   string
-	Port string
-}
-
 type Manager struct {
 	Mode      string
-	Listeners map[ListenerKey]*proxyproto.Listener
+	Listeners map[upstream.UpstreamKey]*proxyproto.Listener
 	Config    config.Listener
 }
 
 func InitManager(mode string, Config config.Listener) (*Manager, error) {
 	manager := &Manager{}
 	manager.Mode = mode
-	manager.Listeners = make(map[ListenerKey]*proxyproto.Listener)
+	manager.Listeners = make(map[upstream.UpstreamKey]*proxyproto.Listener)
 	manager.Config = Config
 
 	switch mode {
@@ -57,12 +53,12 @@ func (manager *Manager) Shutdown() {
 	}
 }
 
-func (manager *Manager) DefaultListenerKey() ListenerKey {
-	return ListenerKey{Ip: manager.Config.IP.String(), Port: manager.Config.DefaultPort}
+func (manager *Manager) DefaultUpstreamKey() upstream.UpstreamKey {
+	return upstream.UpstreamKey{Ip: manager.Config.IP.String(), Port: manager.Config.DefaultPort}
 }
 
 func (manager *Manager) DefaultListener() *proxyproto.Listener {
-	return manager.Listeners[manager.DefaultListenerKey()]
+	return manager.Listeners[manager.DefaultUpstreamKey()]
 }
 
 func setupSingleListener(manager *Manager) {
@@ -71,10 +67,10 @@ func setupSingleListener(manager *Manager) {
 		log.Fatal("[FATAL] ", err)
 	}
 
-	manager.Listeners[manager.DefaultListenerKey()] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
+	manager.Listeners[manager.DefaultUpstreamKey()] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
 }
 
-func (manager *Manager) FetchListener(key ListenerKey) *proxyproto.Listener {
+func (manager *Manager) FetchListener(key upstream.UpstreamKey) *proxyproto.Listener {
 	listener := manager.Listeners[key]
 	if listener == nil {
 		ln, err := net.Listen("tcp", net.JoinHostPort(key.Ip, key.Port))
@@ -88,7 +84,7 @@ func (manager *Manager) FetchListener(key ListenerKey) *proxyproto.Listener {
 	return manager.Listeners[key]
 }
 
-func (manager *Manager) Remove(key ListenerKey) {
+func (manager *Manager) Remove(key upstream.UpstreamKey) {
 	delete(manager.Listeners, key)
 }
 

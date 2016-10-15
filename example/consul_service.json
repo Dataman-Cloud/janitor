@@ -7,7 +7,7 @@
     "wan": "10.0.10.10"
   },
   "Service": {
-    "ID": "mesos-2",
+    "ID": "mesos-1",
     "Service": "mesos",
     "Tags": [
       "borg",
@@ -17,7 +17,7 @@
       "borg-frontend-port:3413"
     ],
     "Address": "192.168.59.103",
-    "Port": 5098
+    "Port": 5100
   },
   "Check": {
     "Node": "foobar",
@@ -25,6 +25,6 @@
     "Name": "mesos health check",
     "Notes": "Script based health check",
     "Status": "passing",
-    "ServiceID": "mesos-2"
+    "ServiceID": "mesos-1"
   }
 }

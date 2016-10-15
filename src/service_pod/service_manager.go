@@ -45,7 +45,7 @@ func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) *S
 
 	httpServer := &http.Server{Handler: manager.handlerFactory.HttpHandler(upstream)}
 
-	listener := manager.listenerManager.FetchListener(listener.ListenerKey{Ip: upstream.FrontendIp, Port: upstream.FrontendPort})
+	listener := manager.listenerManager.FetchListener(upstream.Key())
 	pod := NewServicePod(upstream, httpServer, listener)
 	manager.servicePods[upstream.Key()] = pod
 
