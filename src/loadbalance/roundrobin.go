@@ -2,6 +2,7 @@ package loadbalance
 
 import (
 	"github.com/Dataman-Cloud/janitor/src/upstream"
+	"sync"
 )
 
 type LoadBalancer interface {
@@ -12,6 +13,7 @@ type LoadBalancer interface {
 type RoundRobinLoaderBalancer struct {
 	Upstream  *upstream.Upstream
 	NextIndex int
+	SeedLock  sync.Mutex
 }
 
 func NewRoundRobinLoaderBalancer() *RoundRobinLoaderBalancer {
@@ -19,6 +21,8 @@ func NewRoundRobinLoaderBalancer() *RoundRobinLoaderBalancer {
 }
 
 func (rr *RoundRobinLoaderBalancer) Seed(upstream *upstream.Upstream) {
+	rr.SeedLock.Lock()
+	defer rr.SeedLock.Unlock()
 	rr.Upstream = upstream
 	rr.NextIndex = 0
 }
