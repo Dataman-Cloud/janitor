@@ -85,7 +85,6 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 					log.Errorf("poll upstream from consul got err: ", err)
 				}
 
-				fmt.Println("len of serviceEntries is ", serviceName, len(serviceEntries))
 				upstream := buildUpstream(serviceName, tags, serviceEntries)
 				upstreamFound := false
 				for _, oldStream := range consulUpstreamLoader.Upstreams {
