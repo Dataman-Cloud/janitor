@@ -10,7 +10,7 @@ export GO15VENDOREXPERIMENT=1
 default: build
 
 build: fmt
-	go build -v -o ./bin/janitor ./src/
+	go build -v -o ./bin/janitor .
 
 rel: fmt 
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -v -o ./rel/janitor ./src/

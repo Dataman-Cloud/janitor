@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
+	"github.com/Dataman-Cloud/janitor/src/janitor"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -52,7 +53,7 @@ func main() {
 	TuneGolangProcess()
 	SetupLogger()
 
-	server := NewJanitorServer(config)
+	server := janitor.NewJanitorServer(config)
 	server.Init().Run()
 	cleanFuncs = append(cleanFuncs, func() {
 		server.Shutdown()

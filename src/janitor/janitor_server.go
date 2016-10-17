@@ -1,4 +1,4 @@
-package main
+package janitor
 
 import (
 	"github.com/Dataman-Cloud/janitor/src/config"
