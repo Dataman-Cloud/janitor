@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	BORG_TAG            = "borg"
-	BORG_FRONTEND_IP    = "borg-frontend-ip"
-	BORG_FRONTEND_PORT  = "borg-frontend-port"
-	BORG_FRONTEND_PROTO = "borg-frontend-proto"
+	BORG_TAG            = "BORG"
+	BORG_FRONTEND_IP    = "BORG_FRONTEND_IP"
+	BORG_FRONTEND_PORT  = "BORG_FRONTEND_POR"
+	BORG_FRONTEND_PROTO = "BORG_FRONTEND_PROTO"
 
 	CONSUL_UPSTREAM_LOADER_KEY = "ConsulUpstreamLoader"
 )
@@ -58,10 +58,10 @@ func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*C
 
 func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 	defer func() {
-		if err := recover(); err != nil {
-			log.Error("ConsulUpstreamLoader poll go error: %s", err)
-			consulUpstreamLoader.Poll() // execute poll again
-		}
+		//if err := recover(); err != nil {
+		//log.Error("ConsulUpstreamLoader poll got error: %s", err)
+		//consulUpstreamLoader.Poll() // execute poll again
+		//}
 	}()
 
 	for {
@@ -85,8 +85,8 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 					log.Errorf("poll upstream from consul got err: ", err)
 				}
 
+				fmt.Println("len of serviceEntries is ", serviceName, len(serviceEntries))
 				upstream := buildUpstream(serviceName, tags, serviceEntries)
-
 				upstreamFound := false
 				for _, oldStream := range consulUpstreamLoader.Upstreams {
 					if oldStream.FieldsEqual(&upstream) {
@@ -97,6 +97,10 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 					if oldStream.FieldsEqualButTargetsDiffer(&upstream) && !oldStream.StateIs(STATE_NEW) {
 						oldStream.SetState(STATE_CHANGED)
 						oldStream.Targets = upstream.Targets // change targes
+					}
+
+					if oldStream.FieldsEqualButTargetsDiffer(&upstream) && len(upstream.Targets) == 0 {
+						oldStream.StaleMark = true
 					}
 				}
 

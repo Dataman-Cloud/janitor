@@ -93,6 +93,9 @@ func (u *Upstream) FieldsEqualButTargetsDiffer(u1 *Upstream) bool {
 		u.FrontendProto == u1.FrontendProto
 
 	targetsSizeEqual := len(u.Targets) == len(u1.Targets)
+	if fieldsEqual && !targetsSizeEqual {
+		return true
+	}
 
 	targetsEqual := true
 	uTargets := make([]string, 0)
