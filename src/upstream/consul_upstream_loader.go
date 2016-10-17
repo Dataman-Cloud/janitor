@@ -80,12 +80,12 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 
 		for serviceName, tags := range services {
 			if util.SliceContains(tags, BORG_TAG) {
-				catalogServices, _, err := consulUpstreamLoader.ConsulClient.Catalog().Service(serviceName, BORG_TAG, nil)
+				serviceEntries, _, err := consulUpstreamLoader.ConsulClient.Health().Service(serviceName, BORG_TAG, true, nil)
 				if err != nil {
 					log.Errorf("poll upstream from consul got err: ", err)
 				}
 
-				upstream := buildUpstream(serviceName, tags, catalogServices)
+				upstream := buildUpstream(serviceName, tags, serviceEntries)
 
 				upstreamFound := false
 				for _, oldStream := range consulUpstreamLoader.Upstreams {
@@ -147,7 +147,7 @@ func ParseValueFromTags(what string, tags []string) string {
 	return ""
 }
 
-func buildUpstream(serviceName string, tags []string, catalogServices []*consulApi.CatalogService) Upstream {
+func buildUpstream(serviceName string, tags []string, serviceEntries []*consulApi.ServiceEntry) Upstream {
 	var upstream Upstream
 	upstream.ServiceName = serviceName
 	upstream.FrontendIp = ParseValueFromTags(BORG_FRONTEND_IP, tags)
@@ -157,14 +157,14 @@ func buildUpstream(serviceName string, tags []string, catalogServices []*consulA
 	upstream.StaleMark = false
 	upstream.SetState(STATE_NEW)
 
-	for _, service := range catalogServices {
+	for _, service := range serviceEntries {
 		var target Target
-		target.Address = service.Address
-		target.ServiceID = service.ServiceID
-		target.ServiceName = service.ServiceName
-		target.Node = service.Node
-		target.ServiceAddress = service.ServiceAddress
-		target.ServicePort = fmt.Sprintf("%d", service.ServicePort)
+		target.Address = service.Node.Address
+		target.Node = service.Node.Node
+		target.ServiceID = service.Service.ID
+		target.ServiceName = serviceName
+		target.ServiceAddress = service.Service.Address
+		target.ServicePort = fmt.Sprintf("%d", service.Service.Port)
 		target.Upstream = &upstream
 		upstream.Targets = append(upstream.Targets, &target)
 	}
