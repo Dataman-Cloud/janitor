@@ -11,6 +11,9 @@ import (
 	"github.com/armon/go-proxyproto"
 )
 
+// http://www.hydrogen18.com/blog/stop-listening-http-server-go.html
+// listener was not shutting down gracefully
+
 func ListenAndServeHTTP(h http.Handler, ConfigProxy config.Proxy) {
 	srv := &http.Server{
 		Handler: h,

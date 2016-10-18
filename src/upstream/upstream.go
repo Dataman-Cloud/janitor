@@ -92,20 +92,27 @@ func (u *Upstream) FieldsEqualButTargetsDiffer(u1 *Upstream) bool {
 		u.FrontendIp == u1.FrontendIp &&
 		u.FrontendProto == u1.FrontendProto
 
+	if !fieldsEqual {
+		return false
+	}
+
 	targetsSizeEqual := len(u.Targets) == len(u1.Targets)
+
 	if fieldsEqual && !targetsSizeEqual {
 		return true
 	}
 
 	targetsEqual := true
 	uTargets := make([]string, 0)
+	u1Targets := make([]string, 0)
+
 	for _, t := range u.Targets {
 		uTargets = append(uTargets, t.ToString())
 	}
-	u1Targets := make([]string, 0)
 	for _, t := range u1.Targets {
 		u1Targets = append(u1Targets, t.ToString())
 	}
+
 	for index, targetStr := range uTargets {
 		if targetStr != u1Targets[index] {
 			targetsEqual = false

@@ -85,6 +85,14 @@ func (manager *Manager) FetchListener(key upstream.UpstreamKey) *proxyproto.List
 }
 
 func (manager *Manager) Remove(key upstream.UpstreamKey) {
+	l, ok := manager.Listeners[key]
+	if ok {
+		err := l.Close()
+		if err != nil {
+			log.Error("close a already closed listener")
+		}
+	}
+
 	delete(manager.Listeners, key)
 }
 

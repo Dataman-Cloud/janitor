@@ -58,10 +58,10 @@ func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*C
 
 func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 	defer func() {
-		//if err := recover(); err != nil {
-		//log.Error("ConsulUpstreamLoader poll got error: %s", err)
-		//consulUpstreamLoader.Poll() // execute poll again
-		//}
+		if err := recover(); err != nil {
+			log.Error("ConsulUpstreamLoader poll got error: %s", err)
+			consulUpstreamLoader.Poll() // execute poll again
+		}
 	}()
 
 	for {
@@ -74,38 +74,59 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 			return
 		}
 
-		for _, oldStream := range consulUpstreamLoader.Upstreams {
-			oldStream.StaleMark = true // mark all upstreams as stale before a sweep loop
-		}
-
+		newUpstreams := make([]*Upstream, 0)
 		for serviceName, tags := range services {
 			if util.SliceContains(tags, BORG_TAG) {
 				serviceEntries, _, err := consulUpstreamLoader.ConsulClient.Health().Service(serviceName, BORG_TAG, true, nil)
 				if err != nil {
 					log.Errorf("poll upstream from consul got err: ", err)
 				}
-
 				upstream := buildUpstream(serviceName, tags, serviceEntries)
-				upstreamFound := false
-				for _, oldStream := range consulUpstreamLoader.Upstreams {
-					if oldStream.FieldsEqual(&upstream) {
-						upstreamFound = true
-						oldStream.StaleMark = false
-					}
+				newUpstreams = append(newUpstreams, &upstream)
+			}
+		}
 
-					if oldStream.FieldsEqualButTargetsDiffer(&upstream) && !oldStream.StateIs(STATE_NEW) {
-						oldStream.SetState(STATE_CHANGED)
-						oldStream.Targets = upstream.Targets // change targes
-					}
-
-					if oldStream.FieldsEqualButTargetsDiffer(&upstream) && len(upstream.Targets) == 0 {
-						oldStream.StaleMark = true
-					}
+		// find and mark oldUpstream that are stale
+		for _, oldUpstream := range consulUpstreamLoader.Upstreams {
+			shouldSweep := true
+			for _, newUpstream := range newUpstreams {
+				if oldUpstream.FieldsEqual(newUpstream) && len(newUpstream.Targets) != 0 {
+					shouldSweep = false
 				}
+			}
 
-				if !upstreamFound { // enqueue stream if not exists
-					consulUpstreamLoader.Upstreams = append(consulUpstreamLoader.Upstreams, &upstream)
+			if shouldSweep {
+				oldUpstream.StaleMark = true
+			}
+		}
+
+		// find and mark oldUpstream that are changed with targets
+		for _, oldUpstream := range consulUpstreamLoader.Upstreams {
+			for _, newUpstream := range newUpstreams {
+				if oldUpstream.FieldsEqual(newUpstream) && oldUpstream.FieldsEqualButTargetsDiffer(newUpstream) {
+					oldUpstream.SetState(STATE_CHANGED)
+					oldUpstream.Targets = newUpstream.Targets
 				}
+			}
+		}
+
+		upstreamsShouldAppend := make([]*Upstream, 0)
+		for _, newUpstream := range newUpstreams {
+			notInTheSlice := true
+			for _, oldUpstream := range consulUpstreamLoader.Upstreams {
+				if oldUpstream.FieldsEqual(newUpstream) {
+					notInTheSlice = false
+				}
+			}
+
+			if notInTheSlice {
+				upstreamsShouldAppend = append(upstreamsShouldAppend, newUpstream)
+			}
+		}
+
+		for _, upstream := range upstreamsShouldAppend {
+			if len(upstream.Targets) > 0 {
+				consulUpstreamLoader.Upstreams = append(consulUpstreamLoader.Upstreams, upstream)
 			}
 		}
 

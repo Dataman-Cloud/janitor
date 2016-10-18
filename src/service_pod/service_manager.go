@@ -63,9 +63,12 @@ func (manager *ServiceManager) KillServicePod(u *upstream.Upstream) error {
 	manager.rwMutex.Lock()
 	defer manager.rwMutex.Unlock()
 
-	manager.servicePods[u.Key()].Dispose()
-	delete(manager.servicePods, u.Key())
-
-	manager.upstreamLoader.Remove(u)
+	pod, found := manager.servicePods[u.Key()]
+	if found {
+		pod.Dispose()
+		delete(manager.servicePods, u.Key())
+		manager.upstreamLoader.Remove(u)
+		manager.listenerManager.Remove(u.Key())
+	}
 	return nil
 }

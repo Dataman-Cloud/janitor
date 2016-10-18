@@ -29,6 +29,11 @@ func NewHTTPProxy(tr http.RoundTripper, cfg config.HttpHandler, upstream *upstre
 
 func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	targetEntry := p.loadbalancer.Next().Entry()
+	if targetEntry == nil {
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
+
 	var h http.Handler
 	switch {
 	case r.Header.Get("Upgrade") == "websocket":

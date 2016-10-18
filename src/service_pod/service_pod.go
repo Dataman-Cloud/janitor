@@ -1,7 +1,6 @@
 package service_pod
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Dataman-Cloud/janitor/src/upstream"
@@ -38,17 +37,16 @@ func (pod *ServicePod) Invalid() {
 
 func (pod *ServicePod) Run() {
 	go func() {
-		fmt.Println("start runing pod")
+		log.Infof("start runing pod now %s", pod.Key)
 		err := pod.httpServer.Serve(pod.listener)
 		if err != nil {
-			log.Error("pod Run goroutine error  <%s>,  the error is [%s]", pod.Key, err)
+			log.Errorf("pod Run goroutine error  <%s>,  the error is [%s]", pod.Key, err)
 		}
+		log.Infof("end runing pod now %s", pod.Key)
 	}()
 }
 
 func (pod *ServicePod) Dispose() {
-	err := pod.listener.Close()
-	if err != nil {
-		log.Error("dispose error close listener for pod <%s>,  the error is [%s]", pod.Key, err)
-	}
+	log.Info("disposing a service pod")
+	//pod.httpServer.Handler.Stopping = true
 }
