@@ -31,7 +31,7 @@ func NewJanitorServer(Config config.Config) *JanitorServer {
 }
 
 func (server *JanitorServer) Init() *JanitorServer {
-	log.Info("JanitorServer Initialing ...")
+	log.Info("Janitor Server Initialing")
 	err := server.setupUpstreamLoader()
 	if err != nil {
 		log.Fatalf("Setup Upstream Loader Got err: %s", err)
@@ -60,7 +60,7 @@ func (server *JanitorServer) setupUpstreamLoader() error {
 }
 
 func (server *JanitorServer) setupListenerManager() error {
-	log.Info("ListenerManager started")
+	log.Info("Listener Manager started")
 	listenerManager, err := listener.InitManager(listener.MULTIPORT_LISTENER_MODE, server.config.Listener)
 	if err != nil {
 		return err

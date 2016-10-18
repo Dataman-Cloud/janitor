@@ -138,6 +138,16 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) List() []*Upstream {
 	return consulUpstreamLoader.Upstreams
 }
 
+func (consulUpstreamLoader *ConsulUpstreamLoader) ServiceEntries() []string {
+	entryList := make([]string, 0)
+	for _, u := range consulUpstreamLoader.Upstreams {
+		entry := fmt.Sprintf("%s://%s:%s", u.Key().Proto, u.Key().Ip, u.Key().Port)
+		entryList = append(entryList, entry)
+	}
+
+	return entryList
+}
+
 func (consulUpstreamLoader *ConsulUpstreamLoader) Get(serviceName string) *Upstream {
 	return nil
 }
