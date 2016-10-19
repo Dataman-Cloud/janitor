@@ -105,3 +105,11 @@ func (server *JanitorServer) Run() {
 }
 
 func (server *JanitorServer) Shutdown() {}
+
+func (server *JanitorServer) PortsOccupied() []string {
+	return server.serviceManager.PortsOccupied()
+}
+
+func (server *JanitorServer) ClusterAddressList(prefix string) []string {
+	return server.serviceManager.ClusterAddressList(prefix)
+}
