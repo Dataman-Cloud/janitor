@@ -158,4 +158,8 @@ func (manager *ServiceManager) ClusterAddressList(prefix string) []string {
 
 func (manager *ServiceManager) PortsOccupied() []string {
 	ports := make([]string, 0)
+	for _, pod := range manager.servicePods {
+		ports = append(ports, pod.Port)
+	}
+	return ports
 }
