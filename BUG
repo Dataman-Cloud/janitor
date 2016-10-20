@@ -1,0 +1,3 @@
+
+* application entries key/value pair prefix problem
+* proctect upstreamLoader, handlerFactory, listenerManager from  initialize multiple times

@@ -139,12 +139,13 @@ func (manager *ServiceManager) UpdateKVApplicationList() {
 	}
 }
 
+// error condition not considered
 func (manager *ServiceManager) ClusterAddressList(prefix string) []string {
 	// use consulClient For short, UGLY
 	serviceEntriesWithPrefix := make([]string, 0)
 	kv := manager.consulClient.KV()
 	trimedPrefix := strings.TrimLeft(prefix, "/")
-	kvPairs, _, err := kv.List(trimedPrefix, nil)
+	kvPairs, _, err := kv.List(fmt.Sprintf("%s@", trimedPrefix), nil)
 	if err != nil {
 		log.Errorf("kv list error %s", err)
 	}

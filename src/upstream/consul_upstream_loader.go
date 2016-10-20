@@ -3,6 +3,7 @@ package upstream
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/util"
@@ -29,6 +30,7 @@ type ConsulUpstreamLoader struct {
 
 	Upstreams    []*Upstream
 	changeNotify chan bool
+	sync.Mutex
 }
 
 func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader {
@@ -126,6 +128,7 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 
 		for _, upstream := range upstreamsShouldAppend {
 			if len(upstream.Targets) > 0 {
+				log.Infof("new upstream found %s", upstream.Key())
 				consulUpstreamLoader.Upstreams = append(consulUpstreamLoader.Upstreams, upstream)
 			}
 		}
@@ -135,6 +138,8 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 }
 
 func (consulUpstreamLoader *ConsulUpstreamLoader) List() []*Upstream {
+	consulUpstreamLoader.Lock()
+	defer consulUpstreamLoader.Unlock()
 	return consulUpstreamLoader.Upstreams
 }
 
