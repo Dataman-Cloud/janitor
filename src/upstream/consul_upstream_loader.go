@@ -86,8 +86,8 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 				// skip services not intent for local server
 				intendIp := ParseValueFromTags(BORG_FRONTEND_IP, tags)
 				if len(intendIp) == 0 || !util.SliceContains(util.GetLocalIPs(), intendIp) {
-					log.Errorf("intendIp is %s", intendIp)
-					log.Errorf("LocalIPs are %s", util.GetLocalIPs())
+					log.Debugf("intendIp is %s", intendIp)
+					log.Debugf("LocalIPs are %s", util.GetLocalIPs())
 					continue
 				}
 
