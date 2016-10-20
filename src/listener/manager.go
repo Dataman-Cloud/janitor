@@ -61,27 +61,30 @@ func (manager *Manager) DefaultListener() *proxyproto.Listener {
 	return manager.Listeners[manager.DefaultUpstreamKey()]
 }
 
-func setupSingleListener(manager *Manager) {
+func setupSingleListener(manager *Manager) error {
 	ln, err := net.Listen("tcp", net.JoinHostPort(manager.Config.IP.String(), manager.Config.DefaultPort))
 	if err != nil {
-		log.Fatal("[FATAL] ", err)
+		log.Errorf("%s", err)
+		return err
 	}
 
 	manager.Listeners[manager.DefaultUpstreamKey()] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
+	return nil
 }
 
-func (manager *Manager) FetchListener(key upstream.UpstreamKey) *proxyproto.Listener {
+func (manager *Manager) FetchListener(key upstream.UpstreamKey) (*proxyproto.Listener, error) {
 	listener := manager.Listeners[key]
 	if listener == nil {
 		ln, err := net.Listen("tcp", net.JoinHostPort(key.Ip, key.Port))
 		if err != nil {
-			log.Fatal("[FATAL] ", err)
+			log.Errorf("%s", err)
+			return nil, err
 		}
 
 		manager.Listeners[key] = &proxyproto.Listener{Listener: TcpKeepAliveListener{ln.(*net.TCPListener)}}
 	}
 
-	return manager.Listeners[key]
+	return manager.Listeners[key], nil
 }
 
 func (manager *Manager) Remove(key upstream.UpstreamKey) {

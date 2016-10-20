@@ -68,18 +68,22 @@ func NewServiceManager(ctx context.Context) *ServiceManager {
 	return serviceManager
 }
 
-func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) *ServicePod {
+func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*ServicePod, error) {
 	manager.forkMutex.Lock()
 	defer manager.forkMutex.Unlock()
 
+	listener, err := manager.listenerManager.FetchListener(upstream.Key())
+	if err != nil {
+		return nil, err
+	}
+
 	httpServer := &http.Server{Handler: manager.handlerFactory.HttpHandler(upstream)}
 
-	listener := manager.listenerManager.FetchListener(upstream.Key())
 	pod := NewServicePod(upstream, httpServer, listener)
 	manager.servicePods[upstream.Key()] = pod
 
 	manager.UpdateKVApplicationList()
-	return pod
+	return pod, nil
 }
 
 func (manager *ServiceManager) FetchServicePod(key upstream.UpstreamKey) *ServicePod {

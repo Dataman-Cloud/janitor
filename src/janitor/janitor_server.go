@@ -85,8 +85,13 @@ func (server *JanitorServer) Run() {
 			switch u.State.State() {
 			case upstream.STATE_NEW:
 				log.Infof("create new service pod: %s", u.Key())
-				pod := server.serviceManager.ForkNewServicePod(u)
+				pod, err := server.serviceManager.ForkNewServicePod(u)
+				if err != nil {
+					log.Infof("fail to create a service pod: %s", err.Error())
+					continue
+				}
 				pod.Run()
+
 			case upstream.STATE_CHANGED:
 				log.Infof("update existing service pod: %s", u.Key())
 				server.serviceManager.FetchServicePod(u.Key()).Invalid()
