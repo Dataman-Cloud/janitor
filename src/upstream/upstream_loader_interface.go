@@ -21,7 +21,7 @@ func InitAndStartUpstreamLoader(ctx context.Context, Config config.Config) (Upst
 	var err error
 	switch strings.ToLower(Config.Upstream.SourceType) {
 	case "consul":
-		upstreamLoader, err = InitConsulUpstreamLoader(Config.Upstream.ConsulAddr, Config.Upstream.PollInterval)
+		upstreamLoader, err = InitConsulUpstreamLoader(Config.Upstream.ConsulAddr, Config.Listener.IP, Config.Upstream.PollInterval)
 		if err != nil {
 			return nil, err
 		}

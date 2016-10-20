@@ -2,6 +2,7 @@ package upstream
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -31,6 +32,7 @@ type ConsulUpstreamLoader struct {
 	Upstreams    []*Upstream
 	changeNotify chan bool
 	sync.Mutex
+	DefaultUpstreamIp net.IP
 }
 
 func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader {
@@ -38,7 +40,7 @@ func ConsulUpstreamLoaderFromContext(ctx context.Context) *ConsulUpstreamLoader 
 	return upstreamLoader.(*ConsulUpstreamLoader)
 }
 
-func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*ConsulUpstreamLoader, error) {
+func InitConsulUpstreamLoader(consulAddr string, defaultUpstreamIp net.IP, pollInterval time.Duration) (*ConsulUpstreamLoader, error) {
 	consulUpstreamLoader := &ConsulUpstreamLoader{}
 
 	consulUpstreamLoader.changeNotify = make(chan bool, 64)
@@ -52,6 +54,7 @@ func InitConsulUpstreamLoader(consulAddr string, pollInterval time.Duration) (*C
 	consulUpstreamLoader.ConsulClient = client
 	consulUpstreamLoader.PollTicker = time.NewTicker(pollInterval)
 	consulUpstreamLoader.Upstreams = make([]*Upstream, 0)
+	consulUpstreamLoader.DefaultUpstreamIp = defaultUpstreamIp
 
 	go consulUpstreamLoader.Poll()
 
@@ -78,23 +81,18 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 
 		newUpstreams := make([]*Upstream, 0)
 		for serviceName, tags := range services {
-			if util.SliceContains(tags, BORG_TAG) {
-				serviceEntries, _, err := consulUpstreamLoader.ConsulClient.Health().Service(serviceName, BORG_TAG, true, nil)
-				if err != nil {
-					log.Errorf("poll upstream from consul got err: ", err)
-				}
-				// skip services not intent for local server
-				intendIp := ParseValueFromTags(BORG_FRONTEND_IP, tags)
-				if len(intendIp) == 0 || !util.SliceContains(util.GetLocalIPs(), intendIp) {
-					log.Debugf("intendIp is %s", intendIp)
-					log.Debugf("LocalIPs are %s", util.GetLocalIPs())
-					continue
-				}
-
-				upstream := buildUpstream(serviceName, tags, serviceEntries)
-
-				newUpstreams = append(newUpstreams, &upstream)
+			// skip services not intent for local server
+			if !util.SliceContains(tags, BORG_TAG) {
+				log.Debugf("application does't contain tag BORG")
+				continue
 			}
+			serviceEntries, _, err := consulUpstreamLoader.ConsulClient.Health().Service(serviceName, BORG_TAG, true, nil)
+			if err != nil {
+				log.Errorf("poll upstream from consul got err: ", err)
+			}
+
+			upstream := buildUpstream(serviceName, tags, serviceEntries, consulUpstreamLoader.DefaultUpstreamIp.String())
+			newUpstreams = append(newUpstreams, &upstream)
 		}
 
 		// find and mark oldUpstream that are stale
@@ -195,11 +193,11 @@ func ParseValueFromTags(what string, tags []string) string {
 	return ""
 }
 
-func buildUpstream(serviceName string, tags []string, serviceEntries []*consulApi.ServiceEntry) Upstream {
+func buildUpstream(serviceName string, tags []string, serviceEntries []*consulApi.ServiceEntry, defaultUpstreamIp string) Upstream {
 	var upstream Upstream
 	upstream.ServiceName = serviceName
-	upstream.FrontendIp = ParseValueFromTags(BORG_FRONTEND_IP, tags)
 	upstream.FrontendPort = ParseValueFromTags(BORG_FRONTEND_PORT, tags)
+	upstream.FrontendIp = defaultUpstreamIp
 	upstream.FrontendProto = ParseValueFromTags(BORG_FRONTEND_PROTO, tags)
 	upstream.Targets = make([]*Target, 0)
 	upstream.StaleMark = false
