@@ -83,7 +83,16 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 				if err != nil {
 					log.Errorf("poll upstream from consul got err: ", err)
 				}
+				// skip services not intent for local server
+				intendIp := ParseValueFromTags(BORG_FRONTEND_IP, tags)
+				if len(intendIp) == 0 || !util.SliceContains(util.GetLocalIPs(), intendIp) {
+					log.Errorf("intendIp is %s", intendIp)
+					log.Errorf("LocalIPs are %s", util.GetLocalIPs())
+					continue
+				}
+
 				upstream := buildUpstream(serviceName, tags, serviceEntries)
+
 				newUpstreams = append(newUpstreams, &upstream)
 			}
 		}
