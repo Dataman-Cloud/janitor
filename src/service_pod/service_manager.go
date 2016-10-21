@@ -183,6 +183,5 @@ func (manager *ServiceManager) ServiceActvities(serviceName string) []string {
 	}
 
 	values := string(kvPair.Value)
-
 	return strings.Split(values, "--")
 }

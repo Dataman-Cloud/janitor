@@ -118,3 +118,7 @@ func (server *JanitorServer) PortsOccupied() []string {
 func (server *JanitorServer) ClusterAddressList(prefix string) []string {
 	return server.serviceManager.ClusterAddressList(prefix)
 }
+
+func (server *JanitorServer) ServiceActvities(serviceName string) []string {
+	return server.serviceManager.ServiceActvities(serviceName)
+}
