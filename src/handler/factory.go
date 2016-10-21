@@ -11,12 +11,13 @@ const HANDLER_FACTORY_KEY = "handler_factory"
 
 type Factory struct {
 	HttpHandlerCfg config.HttpHandler
+	ListenerCfg    config.Listener
 }
 
-func NewFactory(cfg config.HttpHandler) *Factory {
-	return &Factory{HttpHandlerCfg: cfg}
+func NewFactory(cfg config.HttpHandler, listenerCfg config.Listener) *Factory {
+	return &Factory{HttpHandlerCfg: cfg, ListenerCfg: listenerCfg}
 }
 
 func (factory *Factory) HttpHandler(upstream *upstream.Upstream) http.Handler {
-	return NewHTTPProxy(&http.Transport{}, factory.HttpHandlerCfg, upstream)
+	return NewHTTPProxy(&http.Transport{}, factory.HttpHandlerCfg, factory.ListenerCfg, upstream)
 }

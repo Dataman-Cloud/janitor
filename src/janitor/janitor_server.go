@@ -72,7 +72,7 @@ func (server *JanitorServer) setupListenerManager() error {
 
 func (server *JanitorServer) setupHandlerFactory() error {
 	log.Info("Setup handler factory")
-	handerFactory := handler.NewFactory(server.config.HttpHandler)
+	handerFactory := handler.NewFactory(server.config.HttpHandler, server.config.Listener)
 	server.ctx = context.WithValue(server.ctx, handler.HANDLER_FACTORY_KEY, handerFactory)
 	server.handerFactory = handerFactory
 	return nil

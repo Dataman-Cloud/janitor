@@ -20,7 +20,8 @@ func DefaultConfig() Config {
 			PollInterval: time.Second * 5,
 		},
 		HttpHandler: HttpHandler{
-			FlushInterval: time.Second * 1,
+			FlushInterval:  time.Second * 1,
+			ClientIPHeader: "",
 		},
 		HttpProxyServer: HttpProxyServer{
 			ReadTimeout:  time.Second * 1,
@@ -81,7 +82,8 @@ type Listener struct {
 }
 
 type HttpHandler struct {
-	FlushInterval time.Duration
+	FlushInterval  time.Duration
+	ClientIPHeader string
 }
 
 type HttpProxyServer struct {
