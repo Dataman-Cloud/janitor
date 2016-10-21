@@ -72,16 +72,20 @@ func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*
 	manager.forkMutex.Lock()
 	defer manager.forkMutex.Unlock()
 
-	listener, err := manager.listenerManager.FetchListener(upstream.Key())
+	pod := NewServicePod(upstream)
+	// fetch a listener then assign it to pod
+	var err error
+	pod.Listener, err = manager.listenerManager.FetchListener(upstream.Key())
 	if err != nil {
+		pod.LogActivity(fmt.Sprintf("[ERRO] fetch a listener error: %s", err.Error()))
 		return nil, err
 	}
 
-	httpServer := &http.Server{Handler: manager.handlerFactory.HttpHandler(upstream)}
+	// fetch a http handler then assign it to pod
+	pod.HttpServer = &http.Server{Handler: manager.handlerFactory.HttpHandler(upstream)}
 
-	pod := NewServicePod(upstream, httpServer, listener)
+	pod.Manager = manager
 	manager.servicePods[upstream.Key()] = pod
-
 	manager.UpdateKVApplicationList()
 	return pod, nil
 }
@@ -132,7 +136,7 @@ func (manager *ServiceManager) UpdateKVApplicationList() {
 	kv := manager.consulClient.KV()
 
 	for k, v := range manager.servicePods {
-		p := &consulApi.KVPair{Key: fmt.Sprintf("%s@%s", v.upstream.ServiceName, k.Ip),
+		p := &consulApi.KVPair{Key: fmt.Sprintf("zara-%s@%s", v.upstream.ServiceName, k.Ip),
 			Value:   []byte(fmt.Sprintf("%s://%s:%s", k.Proto, k.Ip, k.Port)),
 			Session: manager.sessionIDWithTTY,
 		}
@@ -149,7 +153,7 @@ func (manager *ServiceManager) ClusterAddressList(prefix string) []string {
 	serviceEntriesWithPrefix := make([]string, 0)
 	kv := manager.consulClient.KV()
 	trimedPrefix := strings.TrimLeft(prefix, "/")
-	kvPairs, _, err := kv.List(fmt.Sprintf("%s@", trimedPrefix), nil)
+	kvPairs, _, err := kv.List(fmt.Sprintf("zara-%s@", trimedPrefix), nil)
 	if err != nil {
 		log.Errorf("kv list error %s", err)
 	}
@@ -167,4 +171,18 @@ func (manager *ServiceManager) PortsOccupied() []string {
 		ports = append(ports, key.Port)
 	}
 	return ports
+}
+
+// list activities for a pod
+func (manager *ServiceManager) ServiceActvities(serviceName string) []string {
+	kv := manager.consulClient.KV()
+
+	kvPair, _, err := kv.Get(fmt.Sprintf("lotus-%s", serviceName), nil)
+	if err != nil {
+		log.Errorf("kv get error %s", err)
+	}
+
+	values := string(kvPair.Value)
+
+	return strings.Split(values, "--")
 }

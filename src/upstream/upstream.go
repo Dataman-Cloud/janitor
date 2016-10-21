@@ -24,6 +24,10 @@ type UpstreamKey struct {
 	Port  string
 }
 
+func (uk UpstreamKey) ToString() string {
+	return fmt.Sprintf("%s://%s:%s", uk.Proto, uk.Ip, uk.Port)
+}
+
 type UpstreamStateEnum string
 
 const (
