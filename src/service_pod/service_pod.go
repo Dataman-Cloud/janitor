@@ -23,12 +23,13 @@ type ServicePod struct {
 	stopCh chan bool
 }
 
-func NewServicePod(upstream *upstream.Upstream) *ServicePod {
+func NewServicePod(upstream *upstream.Upstream, manager *ServiceManager) *ServicePod {
 	pod := &ServicePod{
 		Key: upstream.Key(),
 
 		stopCh:   make(chan bool, 1),
 		upstream: upstream,
+		Manager:  manager,
 	}
 
 	pod.LogActivity(fmt.Sprintf("[INFO] preparing serving application %s at %s", upstream.ServiceName, upstream.Key().ToString()))
@@ -47,13 +48,17 @@ func (pod *ServicePod) Invalid() {
 
 func (pod *ServicePod) LogActivity(activity string) {
 	kv := pod.Manager.consulClient.KV()
-
 	kvPair, _, err := kv.Get(fmt.Sprintf("lotus-%s", pod.upstream.ServiceName), nil)
 	if err != nil {
 		log.Errorf("kv get error %s", err)
 	}
 
-	existingValue := string(kvPair.Value)
+	var existingValue string
+	if kvPair == nil {
+		existingValue = ""
+	} else {
+		existingValue = string(kvPair.Value)
+	}
 
 	p := &consulApi.KVPair{Key: fmt.Sprintf("lotus-%s", pod.upstream.ServiceName),
 		Value:   []byte(fmt.Sprintf("%s--%s", existingValue, activity)),

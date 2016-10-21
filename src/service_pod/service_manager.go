@@ -72,8 +72,7 @@ func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*
 	manager.forkMutex.Lock()
 	defer manager.forkMutex.Unlock()
 
-	pod := NewServicePod(upstream)
-	pod.Manager = manager
+	pod := NewServicePod(upstream, manager)
 	// fetch a listener then assign it to pod
 	var err error
 	pod.Listener, err = manager.listenerManager.FetchListener(upstream.Key())
