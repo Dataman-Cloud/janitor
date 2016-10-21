@@ -73,6 +73,7 @@ func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*
 	defer manager.forkMutex.Unlock()
 
 	pod := NewServicePod(upstream)
+	pod.Manager = manager
 	// fetch a listener then assign it to pod
 	var err error
 	pod.Listener, err = manager.listenerManager.FetchListener(upstream.Key())
@@ -84,7 +85,6 @@ func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*
 	// fetch a http handler then assign it to pod
 	pod.HttpServer = &http.Server{Handler: manager.handlerFactory.HttpHandler(upstream)}
 
-	pod.Manager = manager
 	manager.servicePods[upstream.Key()] = pod
 	manager.UpdateKVApplicationList()
 	return pod, nil
