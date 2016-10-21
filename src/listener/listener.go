@@ -45,6 +45,7 @@ type TcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
+// TODO make this configurable to reduce TIME_WAIT issue
 func (ln TcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	tc, err := ln.AcceptTCP()
 	if err != nil {
