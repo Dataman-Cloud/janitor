@@ -94,6 +94,7 @@ func (server *JanitorServer) Run() {
 
 			case upstream.STATE_CHANGED:
 				log.Infof("update existing service pod: %s", u.Key())
+				log.Infof("current upstream has %d targets", len(u.Targets))
 				server.serviceManager.FetchServicePod(u.Key()).Invalid()
 			}
 
