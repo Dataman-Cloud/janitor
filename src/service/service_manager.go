@@ -21,7 +21,7 @@ const (
 )
 
 const (
-	SERVICE_ACTIVITIES_PREFIX = "service_activities/lotus"
+	SERVICE_ACTIVITIES_PREFIX = "SA"
 	SERVICE_ENTRIES_PREFIX    = "SE"
 )
 
@@ -186,6 +186,10 @@ func (manager *ServiceManager) ServiceActvities(serviceName string) []string {
 		log.Errorf("kv get error %s", err)
 	}
 
-	values := string(kvPair.Value)
-	return strings.Split(values, "--")
+	if kvPair != nil {
+		values := string(kvPair.Value)
+		return strings.Split(values, "--")
+	} else {
+		return []string{}
+	}
 }
