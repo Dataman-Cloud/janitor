@@ -44,7 +44,7 @@ func InitConsulUpstreamLoader(consulAddr string, defaultUpstreamIp net.IP, pollI
 	consulUpstreamLoader := &ConsulUpstreamLoader{}
 
 	consulUpstreamLoader.changeNotify = make(chan bool, 64)
-	consulConfig := consulApi.DefaultConfig()
+	consulConfig := consulApi.DefaultNonPooledConfig()
 	consulConfig.Address = consulAddr
 
 	client, err := consulApi.NewClient(consulConfig)
