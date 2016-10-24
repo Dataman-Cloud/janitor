@@ -48,7 +48,7 @@ func (pod *ServicePod) Invalid() {
 
 func (pod *ServicePod) LogActivity(activity string) {
 	kv := pod.Manager.consulClient.KV()
-	kvPair, _, err := kv.Get(fmt.Sprintf("lotus-%s", pod.upstream.ServiceName), nil)
+	kvPair, _, err := kv.Get(fmt.Sprintf("%s-%s", SERVICE_ACTIVITIES_PREFIX, pod.upstream.ServiceName), nil)
 	if err != nil {
 		log.Errorf("kv get error %s", err)
 	}

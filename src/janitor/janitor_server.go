@@ -4,7 +4,7 @@ import (
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/handler"
 	"github.com/Dataman-Cloud/janitor/src/listener"
-	"github.com/Dataman-Cloud/janitor/src/service_pod"
+	"github.com/Dataman-Cloud/janitor/src/service"
 	"github.com/Dataman-Cloud/janitor/src/upstream"
 
 	log "github.com/Sirupsen/logrus"

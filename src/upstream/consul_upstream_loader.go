@@ -86,6 +86,7 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 				log.Debugf("application does't contain tag BORG")
 				continue
 			}
+			// list only passing state and has tag name BORG_TAG
 			serviceEntries, _, err := consulUpstreamLoader.ConsulClient.Health().Service(serviceName, BORG_TAG, true, nil)
 			if err != nil {
 				log.Errorf("poll upstream from consul got err: ", err)
