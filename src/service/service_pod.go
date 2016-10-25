@@ -39,8 +39,6 @@ func NewServicePod(upstream *upstream.Upstream, manager *ServiceManager) *Servic
 		Manager:  manager,
 	}
 
-	pod.LogActivity(fmt.Sprintf("[INFO] preparing serving application %s at %s", upstream.ServiceName, upstream.Key().ToString()))
-
 	pod.sessionRenewTicker = time.NewTicker(SESSION_RENEW_INTERVAL)
 	var err error
 	pod.sessionIDWithTTY, _, err = pod.Manager.consulClient.Session().Create(
@@ -54,6 +52,7 @@ func NewServicePod(upstream *upstream.Upstream, manager *ServiceManager) *Servic
 	}
 
 	pod.KeepSessionAlive()
+	pod.LogActivity(fmt.Sprintf("[INFO] preparing serving application %s at %s", upstream.ServiceName, upstream.Key().ToString()))
 
 	return pod
 }
@@ -109,7 +108,7 @@ func (pod *ServicePod) LogActivity(activity string) {
 		Value:   []byte(fmt.Sprintf("%s--%s", existingValue, activity)),
 		Session: pod.sessionIDWithTTY,
 	}
-	_, err = kv.Put(p, nil)
+	_, _, err = kv.Acquire(p, nil)
 	if err != nil {
 		log.Errorf("persist service entries error %s", err)
 	}
@@ -142,7 +141,7 @@ func (pod *ServicePod) RenewPodEntries() {
 		Value:   []byte(fmt.Sprintf("%s://%s:%s", pod.Key.Proto, pod.Key.Ip, pod.Key.Port)),
 		Session: pod.sessionIDWithTTY,
 	}
-	_, err := kv.Put(p, nil)
+	_, _, err := kv.Acquire(p, nil)
 	if err != nil {
 		log.Errorf("persist service entries error %s", err)
 	}
