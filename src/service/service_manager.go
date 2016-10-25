@@ -140,7 +140,7 @@ func (manager *ServiceManager) UpdateKVApplicationList() {
 	kv := manager.consulClient.KV()
 
 	for k, v := range manager.servicePods {
-		p := &consulApi.KVPair{Key: fmt.Sprintf("%s-%s@%s", SERVICE_ENTRIES_PREFIX, v.upstream.ServiceName, k.Ip),
+		p := &consulApi.KVPair{Key: fmt.Sprintf("%s/%s/%s", SERVICE_ENTRIES_PREFIX, v.upstream.ServiceName, k.Ip),
 			Value:   []byte(fmt.Sprintf("%s://%s:%s", k.Proto, k.Ip, k.Port)),
 			Session: manager.sessionIDWithTTY,
 		}
@@ -157,7 +157,7 @@ func (manager *ServiceManager) ClusterAddressList(prefix string) []string {
 	serviceEntriesWithPrefix := make([]string, 0)
 	kv := manager.consulClient.KV()
 	trimedPrefix := strings.TrimLeft(prefix, "/")
-	kvPairs, _, err := kv.List(fmt.Sprintf("%s-%s@", SERVICE_ENTRIES_PREFIX, trimedPrefix), nil)
+	kvPairs, _, err := kv.List(fmt.Sprintf("%s/%s", SERVICE_ENTRIES_PREFIX, trimedPrefix), nil)
 	if err != nil {
 		log.Errorf("kv list error %s", err)
 	}
@@ -181,7 +181,7 @@ func (manager *ServiceManager) PortsOccupied() []string {
 func (manager *ServiceManager) ServiceActvities(serviceName string) []string {
 	kv := manager.consulClient.KV()
 
-	kvPair, _, err := kv.Get(fmt.Sprintf("%s-%s", SERVICE_ACTIVITIES_PREFIX, serviceName), nil)
+	kvPair, _, err := kv.Get(fmt.Sprintf("%s/%s", SERVICE_ACTIVITIES_PREFIX, serviceName), nil)
 	if err != nil {
 		log.Errorf("kv get error %s", err)
 	}

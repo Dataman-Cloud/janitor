@@ -15,10 +15,9 @@ import (
 )
 
 const (
-	BORG_TAG            = "BORG"
-	BORG_FRONTEND_IP    = "BORG_FRONTEND_IP"
-	BORG_FRONTEND_PORT  = "BORG_FRONTEND_POR"
-	BORG_FRONTEND_PROTO = "BORG_FRONTEND_PROTO"
+	BORG_TAG            = "borg"
+	BORG_FRONTEND_PORT  = "port"
+	BORG_FRONTEND_PROTO = "proto"
 
 	CONSUL_UPSTREAM_LOADER_KEY = "ConsulUpstreamLoader"
 )
@@ -186,8 +185,8 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) ChangeNotify() <-chan bool {
 func ParseValueFromTags(what string, tags []string) string {
 	for _, tag := range tags {
 		if strings.HasPrefix(tag, what) {
-			if len(strings.Split(tag, ":")) == 2 {
-				return strings.Split(tag, ":")[1]
+			if len(strings.Split(tag, "-")) == 2 {
+				return strings.Split(tag, "-")[1]
 			}
 		}
 	}
