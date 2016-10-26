@@ -137,7 +137,7 @@ func (pod *ServicePod) RenewPodEntries() {
 	// use consulClient For short, UGLY
 	kv := pod.Manager.consulClient.KV()
 
-	p := &consulApi.KVPair{Key: fmt.Sprintf("%s/%s/%s", SERVICE_ENTRIES_PREFIX, pod.upstream.ServiceName, pod.Key.Ip),
+	p := &consulApi.KVPair{Key: fmt.Sprintf("%s/%s/%s/%s", SERVICE_ENTRIES_PREFIX, pod.upstream.ServiceName, pod.Key.Ip, pod.Key.Port),
 		Value:   []byte(fmt.Sprintf("%s://%s:%s", pod.Key.Proto, pod.Key.Ip, pod.Key.Port)),
 		Session: pod.sessionIDWithTTY,
 	}
