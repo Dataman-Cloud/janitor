@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/upstream"
@@ -28,6 +29,7 @@ type ServicePod struct {
 	sessionIDWithTTY   string
 	sessionRenewTicker *time.Ticker
 	stopCh             chan bool
+	lock               sync.Mutex
 }
 
 func NewServicePod(upstream *upstream.Upstream, manager *ServiceManager) *ServicePod {
@@ -82,6 +84,10 @@ func (pod *ServicePod) KeepSessionAlive() {
 }
 
 func (pod *ServicePod) Invalid() {
+	log.Infof("pod invalid now %s", pod.Key.ToString())
+	pod.lock.Lock()
+	defer pod.lock.Unlock()
+
 	targets := make([]string, 0)
 	for _, t := range pod.upstream.Targets {
 		targets = append(targets, t.ToString())
@@ -102,8 +108,14 @@ func (pod *ServicePod) LogActivity(activity string) {
 		existingValue = ""
 	} else {
 		existingValue = string(kvPair.Value)
+		if len(existingValue) > 100000 {
+			existingValues := strings.Split(string(existingValue), "--")
+			existingValuesLen := len(existingValues)
+			existingValue = strings.Join(existingValues[existingValuesLen-20:existingValuesLen], "--")
+		}
 	}
 
+	log.Debugf(existingValue)
 	p := &consulApi.KVPair{Key: fmt.Sprintf("%s/%s", SERVICE_ACTIVITIES_PREFIX, pod.upstream.ServiceName),
 		Value:   []byte(fmt.Sprintf("%s--%s", existingValue, activity)),
 		Session: pod.sessionIDWithTTY,
