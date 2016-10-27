@@ -70,11 +70,12 @@ func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*
 	return pod, nil
 }
 
-func (manager *ServiceManager) FetchServicePod(key upstream.UpstreamKey) *ServicePod {
+func (manager *ServiceManager) FetchServicePod(key upstream.UpstreamKey) (*ServicePod, bool) {
 	manager.rwMutex.RLock()
 	defer manager.rwMutex.RUnlock()
 
-	return manager.servicePods[key]
+	pod, found := manager.servicePods[key]
+	return pod, found
 }
 
 func (manager *ServiceManager) KillServicePod(u *upstream.Upstream) error {
