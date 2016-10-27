@@ -78,7 +78,7 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 			return
 		}
 
-		newUpstreams := make([]*Upstream, 0)
+		latestUpstreamList := make([]*Upstream, 0)
 		for serviceName, tags := range services {
 			// skip services not intent for local server
 			if !util.SliceContains(tags, BORG_TAG) {
@@ -92,27 +92,45 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 			}
 
 			upstream := buildUpstream(serviceName, tags, serviceEntries, consulUpstreamLoader.DefaultUpstreamIp.String())
-			newUpstreams = append(newUpstreams, &upstream)
+			upstreamDuplicated := false
+			for _, n := range latestUpstreamList {
+				if n.EntryPointEqual(&upstream) {
+					upstreamDuplicated = true
+				}
+			}
+
+			if !upstreamDuplicated {
+				latestUpstreamList = append(latestUpstreamList, &upstream)
+			}
+		}
+
+		log.Debugf("latest upstream list")
+		for _, s := range latestUpstreamList {
+			log.Debugf(s.ToString())
 		}
 
 		// find and mark oldUpstream that are stale
 		for _, oldUpstream := range consulUpstreamLoader.Upstreams {
 			shouldSweep := true
-			for _, newUpstream := range newUpstreams {
+			for _, newUpstream := range latestUpstreamList {
 				if oldUpstream.FieldsEqual(newUpstream) && len(newUpstream.Targets) != 0 {
 					shouldSweep = false
 				}
 			}
 
 			if shouldSweep {
+				log.Debugf("mark shouldSweep ", oldUpstream.ToString())
 				oldUpstream.StaleMark = true
 			}
 		}
 
 		// find and mark oldUpstream that are changed with targets
 		for _, oldUpstream := range consulUpstreamLoader.Upstreams {
-			for _, newUpstream := range newUpstreams {
+			for _, newUpstream := range latestUpstreamList {
 				if oldUpstream.FieldsEqual(newUpstream) && oldUpstream.FieldsEqualButTargetsDiffer(newUpstream) {
+					log.Debugf(oldUpstream.ToString())
+					log.Debugf(newUpstream.ToString())
+					log.Debugf("set changed %s", oldUpstream.ToString())
 					oldUpstream.SetState(STATE_CHANGED)
 					oldUpstream.Targets = newUpstream.Targets
 				}
@@ -120,7 +138,7 @@ func (consulUpstreamLoader *ConsulUpstreamLoader) Poll() {
 		}
 
 		upstreamsShouldAppend := make([]*Upstream, 0)
-		for _, newUpstream := range newUpstreams {
+		for _, newUpstream := range latestUpstreamList {
 			notInTheSlice := true
 			for _, oldUpstream := range consulUpstreamLoader.Upstreams {
 				if oldUpstream.FieldsEqual(newUpstream) {

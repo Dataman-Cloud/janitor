@@ -2,6 +2,8 @@ package upstream
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -61,7 +63,12 @@ func (us *UpstreamState) Update(newState UpstreamStateEnum) {
 }
 
 func (u *Upstream) ToString() string {
-	return fmt.Sprintf("%s-%s-%s-%s", u.ServiceName, u.FrontendProto, u.FrontendIp, u.FrontendPort)
+	targets := []string{}
+	for _, t := range u.Targets {
+		targets = append(targets, t.ToString())
+	}
+
+	return fmt.Sprintf("%s-%s-%s-%s Targets: \n %s", u.ServiceName, u.FrontendProto, u.FrontendIp, u.FrontendPort, strings.Join(targets, "\n  "))
 }
 
 func (u *Upstream) Equal(u1 *Upstream) bool {
@@ -117,6 +124,9 @@ func (u *Upstream) FieldsEqualButTargetsDiffer(u1 *Upstream) bool {
 		u1Targets = append(u1Targets, t.ToString())
 	}
 
+	sort.Strings(uTargets)
+	sort.Strings(u1Targets)
+
 	for index, targetStr := range uTargets {
 		if targetStr != u1Targets[index] {
 			targetsEqual = false
@@ -129,6 +139,14 @@ func (u *Upstream) FieldsEqualButTargetsDiffer(u1 *Upstream) bool {
 func (u *Upstream) FieldsEqual(u1 *Upstream) bool {
 	fieldsEqual := u.ServiceName == u1.ServiceName &&
 		u.FrontendPort == u1.FrontendPort &&
+		u.FrontendIp == u1.FrontendIp &&
+		u.FrontendProto == u1.FrontendProto
+
+	return fieldsEqual
+}
+
+func (u *Upstream) EntryPointEqual(u1 *Upstream) bool {
+	fieldsEqual := u.FrontendPort == u1.FrontendPort &&
 		u.FrontendIp == u1.FrontendIp &&
 		u.FrontendProto == u1.FrontendProto
 

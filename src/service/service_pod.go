@@ -84,7 +84,6 @@ func (pod *ServicePod) KeepSessionAlive() {
 }
 
 func (pod *ServicePod) Invalid() {
-	log.Infof("pod invalid now %s", pod.Key.ToString())
 	pod.lock.Lock()
 	defer pod.lock.Unlock()
 
@@ -139,7 +138,7 @@ func (pod *ServicePod) Run() {
 }
 
 func (pod *ServicePod) Dispose() {
-	log.Info("disposing a service pod")
+	log.Infof("disposing a service pod")
 	pod.RenewPodEntries()
 	pod.LogActivity(fmt.Sprintf("[INFO] stop application %s at %s", pod.upstream.ServiceName, pod.upstream.Key().ToString()))
 	pod.stopCh <- true
