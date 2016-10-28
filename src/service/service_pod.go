@@ -58,7 +58,7 @@ func (pod *ServicePod) setupTTLSession() error {
 	pod.sessionIDWithTTY, _, err = pod.Manager.consulClient.Session().Create(
 		&consulApi.SessionEntry{
 			Behavior: "delete",
-			TTL:      "10s",
+			TTL:      "60s",
 		}, nil,
 	)
 	if err != nil {
