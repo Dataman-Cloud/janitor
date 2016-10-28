@@ -150,7 +150,7 @@ func (pod *ServicePod) Run() {
 
 func (pod *ServicePod) Dispose() {
 	log.Infof("disposing a service pod")
-	pod.RenewPodEntries()
+	pod.RemovePodEntry()
 	pod.LogActivity(fmt.Sprintf("[INFO] stop application %s at %s", pod.upstream.ServiceName, pod.upstream.Key().ToString()))
 	pod.stopCh <- true
 }
@@ -167,6 +167,17 @@ func (pod *ServicePod) RenewPodEntries() {
 		_, _, err := kv.Acquire(p, nil)
 		if err != nil {
 			log.Errorf("persist service entries error %s", err)
+		}
+	}()
+}
+
+func (pod *ServicePod) RemovePodEntry() {
+	go func() {
+		kv := pod.Manager.consulClient.KV()
+
+		_, err := kv.Delete(fmt.Sprintf("%s/%s/%s/%s", SERVICE_ENTRIES_PREFIX, pod.upstream.ServiceName, pod.Key.Ip, pod.Key.Port), nil)
+		if err != nil {
+			log.Errorf("delete service entries error %s", err)
 		}
 	}()
 }
