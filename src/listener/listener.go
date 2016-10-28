@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"time"
+	//"time"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
 
@@ -51,11 +51,11 @@ func (ln TcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	if err != nil {
 		return
 	}
-	if err = tc.SetKeepAlive(true); err != nil {
-		return
-	}
-	if err = tc.SetKeepAlivePeriod(3 * time.Minute); err != nil {
-		return
-	}
+	//if err = tc.SetKeepAlive(true); err != nil {
+	//return
+	//}
+	//if err = tc.SetKeepAlivePeriod(3 * time.Minute); err != nil {
+	//return
+	//}
 	return tc, nil
 }
