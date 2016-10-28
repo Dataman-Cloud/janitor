@@ -19,7 +19,7 @@ type JanitorServer struct {
 	upstreamLoader  upstream.UpstreamLoader
 	listenerManager *listener.Manager
 	handerFactory   *handler.Factory
-	serviceManager  *service_pod.ServiceManager
+	serviceManager  *service.ServiceManager
 
 	ctx     context.Context
 	config  config.Config
@@ -47,8 +47,8 @@ func (server *JanitorServer) Init() *JanitorServer {
 	}
 
 	server.setupHandlerFactory()
+	server.setupServiceManager()
 
-	server.serviceManager = service_pod.NewServiceManager(server.ctx)
 	return server
 }
 
@@ -82,6 +82,12 @@ func (server *JanitorServer) setupHandlerFactory() error {
 	return nil
 }
 
+func (server *JanitorServer) setupServiceManager() error {
+	log.Info("Setup service manager")
+	server.serviceManager = service.NewServiceManager(server.ctx)
+	return nil
+}
+
 func (server *JanitorServer) Run() {
 	for {
 		<-server.upstreamLoader.ChangeNotify()
@@ -89,7 +95,7 @@ func (server *JanitorServer) Run() {
 			switch u.State.State() {
 			case upstream.STATE_NEW:
 				log.Infof("create new service pod: %s", u.Key())
-				pod, err := server.serviceManager.ForkNewServicePod(u)
+				pod, err := server.serviceManager.ForkOrFetchNewServicePod(u)
 				if err != nil {
 					log.Infof("fail to create a service pod: %s", err.Error())
 					continue
@@ -99,11 +105,11 @@ func (server *JanitorServer) Run() {
 			case upstream.STATE_CHANGED:
 				log.Infof("update existing service pod: %s", u.Key())
 				log.Infof("current upstream has %d targets", len(u.Targets))
-				pod, found := server.serviceManager.FetchServicePod(u.Key())
-				if found {
-					pod.Invalid()
-				} else {
+				pod, err := server.serviceManager.ForkOrFetchNewServicePod(u)
+				if err != nil {
 					log.Errorf("failed to found pod %s", u.Key().ToString())
+				} else {
+					pod.Invalid()
 				}
 			}
 

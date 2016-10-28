@@ -1,4 +1,4 @@
-package service_pod
+package service
 
 import (
 	"fmt"
@@ -50,13 +50,21 @@ func NewServiceManager(ctx context.Context) *ServiceManager {
 	return serviceManager
 }
 
-func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*ServicePod, error) {
+func (manager *ServiceManager) ForkOrFetchNewServicePod(upstream *upstream.Upstream) (*ServicePod, error) {
 	manager.forkMutex.Lock()
 	defer manager.forkMutex.Unlock()
 
-	pod := NewServicePod(upstream, manager)
+	pod, found := manager.servicePods[upstream.Key()]
+	if found {
+		return pod, nil
+	}
+
+	pod, err := NewServicePod(upstream, manager)
+	if err != nil {
+		return nil, err
+	}
+
 	// fetch a listener then assign it to pod
-	var err error
 	pod.Listener, err = manager.listenerManager.FetchListener(upstream.Key())
 	if err != nil {
 		pod.LogActivity(fmt.Sprintf("[ERRO] fetch a listener error: %s", err.Error()))
@@ -68,14 +76,6 @@ func (manager *ServiceManager) ForkNewServicePod(upstream *upstream.Upstream) (*
 
 	manager.servicePods[upstream.Key()] = pod
 	return pod, nil
-}
-
-func (manager *ServiceManager) FetchServicePod(key upstream.UpstreamKey) (*ServicePod, bool) {
-	manager.rwMutex.RLock()
-	defer manager.rwMutex.RUnlock()
-
-	pod, found := manager.servicePods[key]
-	return pod, found
 }
 
 func (manager *ServiceManager) KillServicePod(u *upstream.Upstream) error {
