@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	SESSION_RENEW_INTERVAL = time.Second * 2
+	SESSION_RENEW_INTERVAL = time.Second * 50
 )
 
 type ServicePod struct {
