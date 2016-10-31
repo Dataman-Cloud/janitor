@@ -20,7 +20,7 @@ type httpProxy struct {
 }
 
 func NewHTTPProxy(tr http.RoundTripper, cfg config.HttpHandler, configListener config.Listener, upstream *upstream.Upstream) http.Handler {
-	loadbalancer := loadbalance.NewRoundRobinLoaderBalancer()
+	loadbalancer := loadbalance.NewRoundRobinLoadBalancer()
 	loadbalancer.Seed(upstream)
 
 	return &httpProxy{

@@ -40,7 +40,7 @@ clean:
 	rm -rf bin/* rel/*
 
 test:
-	go test -v ./src/...
+	go test -cover=true -v ./src/...
 
 PACKAGES = $(shell go list ./src/...)
 
