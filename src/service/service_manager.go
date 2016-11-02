@@ -93,7 +93,7 @@ func (manager *ServiceManager) KillServicePod(u *upstream.Upstream) error {
 }
 
 // error condition not considered
-func (manager *ServiceManager) ClusterAddressList(prefix string) []string {
+func (manager *ServiceManager) ClusterAddressList(prefix string) ([]string, error) {
 	// use consulClient For short, UGLY
 	serviceEntriesWithPrefix := make([]string, 0)
 	kv := manager.consulClient.KV()
@@ -101,13 +101,14 @@ func (manager *ServiceManager) ClusterAddressList(prefix string) []string {
 	kvPairs, _, err := kv.List(fmt.Sprintf("%s/%s", SERVICE_ENTRIES_PREFIX, trimedPrefix), nil)
 	if err != nil {
 		log.Errorf("kv list error %s", err)
+		return []string{}, err
 	}
 
 	for _, v := range kvPairs {
 		serviceEntriesWithPrefix = append(serviceEntriesWithPrefix, string(v.Value))
 	}
 
-	return serviceEntriesWithPrefix
+	return serviceEntriesWithPrefix, nil
 }
 
 func (manager *ServiceManager) PortsOccupied() []string {
@@ -119,18 +120,19 @@ func (manager *ServiceManager) PortsOccupied() []string {
 }
 
 // list activities for a pod
-func (manager *ServiceManager) ServiceActvities(serviceName string) []string {
+func (manager *ServiceManager) ServiceActvities(serviceName string) ([]string, error) {
 	kv := manager.consulClient.KV()
 
 	kvPair, _, err := kv.Get(fmt.Sprintf("%s/%s", SERVICE_ACTIVITIES_PREFIX, serviceName), nil)
 	if err != nil {
 		log.Errorf("kv get error %s", err)
+		return []string{}, err
 	}
 
 	if kvPair != nil {
 		values := string(kvPair.Value)
-		return strings.Split(values, "--")
+		return strings.Split(values, "--"), nil
 	} else {
-		return []string{}
+		return []string{}, nil
 	}
 }

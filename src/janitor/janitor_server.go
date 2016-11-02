@@ -1,10 +1,6 @@
 package janitor
 
 import (
-	"fmt"
-	"strings"
-	"time"
-
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/handler"
 	"github.com/Dataman-Cloud/janitor/src/listener"
@@ -125,25 +121,16 @@ func (server *JanitorServer) Run() {
 	}
 }
 
-func (server *JanitorServer) LogClusterAddrAndServiceActivities() {
-	go func() {
-		for {
-			time.Sleep(time.Second * 10)
-			fmt.Printf(strings.Join(server.ClusterAddressList("new-foobar"), "         "))
-			fmt.Printf(strings.Join(server.ServiceActvities("new-foobar"), "         "))
-		}
-	}()
-}
 func (server *JanitorServer) Shutdown() {}
 
 func (server *JanitorServer) PortsOccupied() []string {
 	return server.serviceManager.PortsOccupied()
 }
 
-func (server *JanitorServer) ClusterAddressList(prefix string) []string {
+func (server *JanitorServer) ClusterAddressList(prefix string) ([]string, error) {
 	return server.serviceManager.ClusterAddressList(prefix)
 }
 
-func (server *JanitorServer) ServiceActvities(serviceName string) []string {
+func (server *JanitorServer) ServiceActvities(serviceName string) ([]string, error) {
 	return server.serviceManager.ServiceActvities(serviceName)
 }
