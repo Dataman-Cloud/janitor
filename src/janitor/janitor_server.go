@@ -61,7 +61,7 @@ func (server *JanitorServer) setupUpstreamLoader() error {
 
 func (server *JanitorServer) setupListenerManager() error {
 	log.Info("Listener Manager started")
-	listenerManager, err := listener.InitManager(listener.MULTIPORT_LISTENER_MODE, server.config.Listener)
+	listenerManager, err := listener.InitManager(server.config.Listener)
 	if err != nil {
 		return err
 	}

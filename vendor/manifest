@@ -44,6 +44,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/gorilla/websocket",
+			"repository": "https://github.com/gorilla/websocket",
+			"vcs": "git",
+			"revision": "e8f0f8aaa98dfb6586cbdf2978d511e3199a960a",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/hashicorp/consul",
 			"repository": "https://github.com/hashicorp/consul",
 			"vcs": "git",

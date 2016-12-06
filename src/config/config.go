@@ -6,11 +6,17 @@ import (
 	"time"
 )
 
+const (
+	SINGLE_LISTENER_MODE    = "single_port"
+	MULTIPORT_LISTENER_MODE = "multi_port"
+)
+
 func DefaultConfig() Config {
 	ip := net.ParseIP("127.0.0.1")
 
 	config := Config{
 		Listener: Listener{
+			Mode:        MULTIPORT_LISTENER_MODE,
 			IP:          ip,
 			DefaultPort: "3456",
 		},

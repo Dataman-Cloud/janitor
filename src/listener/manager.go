@@ -12,11 +12,6 @@ import (
 )
 
 const (
-	SINGLE_LISTENER_MODE    = "single_port"
-	MULTIPORT_LISTENER_MODE = "multi_port"
-)
-
-const (
 	LISTENER_MANAGER_KEY = "listener_manager"
 )
 
@@ -26,16 +21,15 @@ type Manager struct {
 	Config    config.Listener
 }
 
-func InitManager(mode string, Config config.Listener) (*Manager, error) {
+func InitManager(Config config.Listener) (*Manager, error) {
 	manager := &Manager{}
-	manager.Mode = mode
 	manager.Listeners = make(map[upstream.UpstreamKey]*proxyproto.Listener)
 	manager.Config = Config
 
-	switch mode {
-	case SINGLE_LISTENER_MODE:
+	switch manager.Config.Mode {
+	case config.SINGLE_LISTENER_MODE:
 		setupSingleListener(manager)
-	case MULTIPORT_LISTENER_MODE:
+	case config.MULTIPORT_LISTENER_MODE:
 		// Do nothing
 	}
 
