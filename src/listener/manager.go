@@ -5,9 +5,9 @@ import (
 
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/upstream"
+	"github.com/armon/go-proxyproto"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/armon/go-proxyproto"
 	"golang.org/x/net/context"
 )
 

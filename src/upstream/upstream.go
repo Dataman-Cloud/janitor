@@ -97,6 +97,16 @@ func (u *Upstream) Equal(u1 *Upstream) bool {
 	return fieldsEqual && targetsSizeEqual && targetsEqual
 }
 
+func (u *Upstream) GetTarget(serviceID string) *Target {
+	for _, t := range u.Targets {
+		if t.ServiceID == serviceID {
+			return t
+			break
+		}
+	}
+	return nil
+}
+
 func (u *Upstream) FieldsEqualButTargetsDiffer(u1 *Upstream) bool {
 	fieldsEqual := u.ServiceName == u1.ServiceName &&
 		u.FrontendPort == u1.FrontendPort &&
@@ -167,4 +177,17 @@ func (u *Upstream) StateIs(expectState UpstreamStateEnum) bool {
 
 func (u *Upstream) Key() UpstreamKey {
 	return UpstreamKey{Proto: u.FrontendProto, Ip: u.FrontendIp, Port: u.FrontendPort}
+}
+
+func (u *Upstream) Remove(target *Target) {
+	index := -1
+	for k, v := range u.Targets {
+		if v.Equal(target) {
+			index = k
+			break
+		}
+	}
+	if index >= 0 {
+		u.Targets = append(u.Targets[:index], u.Targets[index+1:]...)
+	}
 }

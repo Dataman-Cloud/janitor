@@ -34,7 +34,7 @@ func (t *Target) ToString() string {
 func (t Target) Entry() *url.URL {
 	url, err := url.Parse(fmt.Sprintf("%s://%s", t.Upstream.FrontendProto, net.JoinHostPort(t.ServiceAddress, t.ServicePort)))
 	if err != nil {
-		log.Error("parse target.Address %s to url got err %s", t.Address, err)
+		log.Error("parse target.ServiceAddress %s to url got err %s", t.ServiceAddress, err)
 	}
 
 	return url

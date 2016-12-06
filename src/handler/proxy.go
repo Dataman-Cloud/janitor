@@ -2,8 +2,11 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
@@ -16,23 +19,99 @@ type httpProxy struct {
 	tr             http.RoundTripper
 	cfg            config.HttpHandler
 	listenerConfig config.Listener
-	loadbalancer   loadbalance.LoadBalancer
+	loadbalancers  []*loadbalance.RoundRobinLoadBalancer
+	upstreamLoader upstream.UpstreamLoader
+}
+
+func NewSwanHTTPProxy(tr http.RoundTripper, cfg config.HttpHandler, configListener config.Listener, upstreamLoader upstream.UpstreamLoader) http.Handler {
+	return &httpProxy{
+		tr:             tr,
+		listenerConfig: configListener,
+		cfg:            cfg,
+		upstreamLoader: upstreamLoader,
+	}
 }
 
 func NewHTTPProxy(tr http.RoundTripper, cfg config.HttpHandler, configListener config.Listener, upstream *upstream.Upstream) http.Handler {
+	var loadbalancers []*loadbalance.RoundRobinLoadBalancer
 	loadbalancer := loadbalance.NewRoundRobinLoadBalancer()
 	loadbalancer.Seed(upstream)
+	loadbalancers = append(loadbalancers, loadbalancer)
 
 	return &httpProxy{
 		tr:             tr,
 		listenerConfig: configListener,
 		cfg:            cfg,
-		loadbalancer:   loadbalancer,
+		loadbalancers:  loadbalancers,
+	}
+}
+
+func (p *httpProxy) UpdateLoadBalancers() {
+	for {
+		<-p.upstreamLoader.ChangeNotify()
+		p.loadbalancers = p.loadbalancers[0:0]
+		for _, upstream := range p.upstreamLoader.List() {
+			loadbalancer := loadbalance.NewRoundRobinLoadBalancer()
+			loadbalancer.Seed(upstream)
+			p.loadbalancers = append(p.loadbalancers, loadbalancer)
+		}
 	}
 }
 
 func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	targetEntry := p.loadbalancer.Next().Entry()
+	fmt.Printf("start handling request\n")
+	var targetEntry *url.URL
+	switch p.listenerConfig.Mode {
+	case config.MULTIPORT_LISTENER_MODE:
+		targetEntry = p.loadbalancers[0].Next().Entry()
+	case config.SINGLE_LISTENER_MODE:
+		go p.UpdateLoadBalancers()
+		hostname := r.Header.Get("Host")
+		domain := "dataman-inc.com"
+		hostname = "http://nginx0051-01.defaultGroup.dataman-mesos.dataman-inc.com:80"
+		if hostname == "" {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		u, err := url.Parse(hostname)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		host, port, _ := net.SplitHostPort(u.Host)
+		domainIndex := strings.Index(host, domain)
+		fmt.Printf("scheme:%s\n", u.Scheme)
+		fmt.Printf("host:%s\n", host)
+		fmt.Printf("port:%s\n", port)
+		namespace := host[0 : domainIndex-1]
+		hostNamespaces := strings.Split(namespace, ".")
+		if len(hostNamespaces) == 4 {
+			serviceID := hostNamespaces[0]
+			serviceName := strings.Join(hostNamespaces[1:len(hostNamespaces)], ".")
+			fmt.Printf("serviceID:%s\n", serviceID)
+			fmt.Printf("serviceName:%s\n", serviceName)
+			upstream := p.upstreamLoader.Get(serviceName)
+			if upstream != nil {
+				target := upstream.GetTarget(serviceID)
+				if target != nil {
+					targetEntry = target.Entry()
+				}
+			}
+		} else if len(hostNamespaces) == 3 {
+			serviceName := strings.Join(hostNamespaces, ".")
+			upstream := p.upstreamLoader.Get(serviceName)
+			if upstream != nil {
+				for _, lb := range p.loadbalancers {
+					if upstream.Equal(lb.Upstream) {
+						targetEntry = lb.Next().Entry()
+						break
+					}
+				}
+			}
+		}
+
+	}
+	fmt.Printf("targetEntry:%s\n", targetEntry)
 	if targetEntry == nil {
 		w.WriteHeader(http.StatusBadGateway)
 		return

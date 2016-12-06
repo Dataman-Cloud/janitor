@@ -8,6 +8,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+var UpstreamLoaderKey string
+
 type UpstreamLoader interface {
 	Poll()
 	List() []*Upstream
@@ -21,7 +23,14 @@ func InitAndStartUpstreamLoader(ctx context.Context, Config config.Config) (Upst
 	var err error
 	switch strings.ToLower(Config.Upstream.SourceType) {
 	case "consul":
+		UpstreamLoaderKey = CONSUL_UPSTREAM_LOADER_KEY
 		upstreamLoader, err = InitConsulUpstreamLoader(Config.Upstream.ConsulAddr, Config.Listener.IP, Config.Upstream.PollInterval)
+		if err != nil {
+			return nil, err
+		}
+	case "swan":
+		UpstreamLoaderKey = SWAN_UPSTREAM_LOADER_KEY
+		upstreamLoader, err = InitSwanUpstreamLoader(Config.Listener.IP, Config.Listener.DefaultPort)
 		if err != nil {
 			return nil, err
 		}
