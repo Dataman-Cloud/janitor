@@ -17,7 +17,7 @@ import (
 type JanitorServer struct {
 	upstreamLoader  upstream.UpstreamLoader
 	listenerManager *listener.Manager
-	handerFactory   *handler.Factory
+	handlerFactory  *handler.Factory
 	serviceManager  *service.ServiceManager
 
 	ctx     context.Context
@@ -55,6 +55,10 @@ func (server *JanitorServer) UpstreamLoader() upstream.UpstreamLoader {
 	return server.upstreamLoader
 }
 
+func (server *JanitorServer) SwanEventChan() chan<- *upstream.AppEventNotify {
+	return server.UpstreamLoader().(*upstream.SwanUpstreamLoader).SwanEventChan()
+}
+
 func (server *JanitorServer) setupUpstreamLoader() error {
 	log.Info("Upstream Loader started")
 	upstreamLoader, err := upstream.InitAndStartUpstreamLoader(server.ctx, server.config)
@@ -79,9 +83,10 @@ func (server *JanitorServer) setupListenerManager() error {
 
 func (server *JanitorServer) setupHandlerFactory() error {
 	log.Info("Setup handler factory")
-	handerFactory := handler.NewFactory(server.config.HttpHandler, server.config.Listener)
-	server.ctx = context.WithValue(server.ctx, handler.HANDLER_FACTORY_KEY, handerFactory)
-	server.handerFactory = handerFactory
+	handlerFactory := handler.NewFactory(server.config.HttpHandler, server.config.Listener)
+	handlerFactory.UpstreamLoader = server.upstreamLoader
+	server.ctx = context.WithValue(server.ctx, handler.HANDLER_FACTORY_KEY, handlerFactory)
+	server.handlerFactory = handlerFactory
 	return nil
 }
 
@@ -92,8 +97,8 @@ func (server *JanitorServer) setupServiceManager() error {
 }
 
 func (server *JanitorServer) Run() {
-	switch strings.ToLower(server.config.Listener.Mode) {
-	case config.MULTIPORT_LISTENER_MODE:
+	switch strings.ToLower(server.config.Upstream.SourceType) {
+	case "consul":
 		for {
 			<-server.upstreamLoader.ChangeNotify()
 			fmt.Printf("upstream num:%s\n", len(server.upstreamLoader.List()))
@@ -129,7 +134,7 @@ func (server *JanitorServer) Run() {
 				}
 			}
 		}
-	case config.SINGLE_LISTENER_MODE:
+	case "swan":
 		log.Infof("create a default service pod:%s", server.listenerManager.DefaultUpstreamKey())
 		pod, err := server.serviceManager.FetchDefaultServicePod()
 		if err != nil {

@@ -22,13 +22,6 @@ func NewFactory(cfg config.HttpHandler, listenerCfg config.Listener) *Factory {
 	}
 }
 
-func (factory *Factory) HttpHandler(upstream *upstream.Upstream) http.Handler {
-	var proxy http.Handler
-	switch factory.ListenerCfg.Mode {
-	case config.MULTIPORT_LISTENER_MODE:
-		proxy = NewHTTPProxy(&http.Transport{}, factory.HttpHandlerCfg, factory.ListenerCfg, upstream)
-	case config.SINGLE_LISTENER_MODE:
-		proxy = NewSwanHTTPProxy(&http.Transport{}, factory.HttpHandlerCfg, factory.ListenerCfg, factory.UpstreamLoader)
-	}
-	return proxy
+func (factory *Factory) HttpHandler(us *upstream.Upstream) http.Handler {
+	return NewHTTPProxy(&http.Transport{}, factory.HttpHandlerCfg, factory.ListenerCfg, us, factory.UpstreamLoader)
 }

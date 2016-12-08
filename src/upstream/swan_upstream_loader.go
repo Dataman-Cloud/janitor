@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Dataman-Cloud/janitor/src/loadbalance"
+
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -31,19 +33,20 @@ type SwanUpstreamLoader struct {
 	Proto             string
 }
 
-func InitSwanUpstreamLoader(defaultUpstreamIp net.IP, defaultPort string) (*SwanUpstreamLoader, error) {
+func InitSwanUpstreamLoader(defaultUpstreamIp net.IP, defaultPort string, defaultProto string) (*SwanUpstreamLoader, error) {
 	swanUpstreamLoader := &SwanUpstreamLoader{}
 	swanUpstreamLoader.changeNotify = make(chan bool, 64)
 	swanUpstreamLoader.Upstreams = make([]*Upstream, 0)
 	swanUpstreamLoader.DefaultUpstreamIp = defaultUpstreamIp
 	swanUpstreamLoader.Port = defaultPort
-	swanUpstreamLoader.Proto = "http"
+	swanUpstreamLoader.Proto = defaultProto
 	swanUpstreamLoader.swanEventChan = make(chan *AppEventNotify, 1)
 	go swanUpstreamLoader.Poll()
 	return swanUpstreamLoader, nil
 }
 
 func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
+	log.Debug("SwanUpstreamLoader starts listening app event...")
 	defer func() {
 		if err := recover(); err != nil {
 			log.Errorf("SwanUpstreamLoader poll got error: %s", err)
@@ -53,9 +56,8 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 
 	for {
 		//var appEvent *AppEventNotify
-		log.Debug("swanUpstreamLoader is listening app event...")
 		appEvent := <-swanUpstreamLoader.swanEventChan
-		log.Debug("swanUpstreamLoader receive one app event:%s", appEvent)
+		log.Debugf("SwanUpstreamLoader receive one app event:%s", appEvent)
 		switch strings.ToLower(appEvent.Operation) {
 		case "add":
 			upstream := buildSwanUpstream(appEvent, swanUpstreamLoader.DefaultUpstreamIp, swanUpstreamLoader.Port, swanUpstreamLoader.Proto)
@@ -73,6 +75,7 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 							target.Upstream = u
 							u.Remove(t)
 							u.Targets = append(u.Targets, target)
+							log.Debugf("Target [%s] updated in upstream [%s]", target.ServiceID, u.ServiceName)
 							u.SetState(STATE_CHANGED)
 							break
 						}
@@ -80,16 +83,25 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 					if !targetDuplicated {
 						target.Upstream = u
 						u.Targets = append(u.Targets, target)
+						log.Debugf("Target [%s] added in upstream [%s]", target.ServiceID, u.ServiceName)
 						u.SetState(STATE_CHANGED)
 					}
 
 				}
 			}
 			if !upstreamDuplicated {
-				target.Upstream = upstream
+				//set state
 				upstream.SetState(STATE_NEW)
+				//add target
+				target.Upstream = upstream
 				upstream.Targets = append(upstream.Targets, target)
+				log.Debugf("Target [%s] added in upstream [%s]", target.ServiceID, upstream.ServiceName)
+				//add loadbalance when upstream created
+				loadBalance := loadbalance.NewRoundRobinLoadBalancer()
+				loadBalance.Seed()
+				upstream.LoadBalance = loadBalance
 				swanUpstreamLoader.Upstreams = append(swanUpstreamLoader.Upstreams, upstream)
+				log.Debugf("Upstream [%s] created", upstream.ServiceName)
 			}
 		case "delete":
 			upstream := buildSwanUpstream(appEvent, swanUpstreamLoader.DefaultUpstreamIp, swanUpstreamLoader.Port, swanUpstreamLoader.Proto)
@@ -97,18 +109,15 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 			for _, u := range swanUpstreamLoader.Upstreams {
 				if u.FieldsEqual(upstream) {
 					u.Remove(target)
-					fmt.Printf("delete target from upstream:%+v\n", target)
+					log.Debugf("Target %s removed from upstream [%s]", target.ServiceID, upstream.ServiceName)
 					if len(u.Targets) > 0 {
 						u.SetState(STATE_CHANGED)
 					} else {
 						u.StaleMark = true
-						swanUpstreamLoader.Remove(u)
 					}
-					break
 				}
 			}
 		}
-		swanUpstreamLoader.changeNotify <- true
 	}
 }
 
@@ -178,9 +187,6 @@ func buildSwanUpstream(appEvent *AppEventNotify, defaultUpstreamIp net.IP, port 
 	// create a new upstream
 	var upstream Upstream
 	taskNamespaces := strings.Split(appEvent.TaskName, ".")
-	fmt.Printf("taskNamespaces:%s\n", taskNamespaces)
-	taskNum := taskNamespaces[0]
-	fmt.Printf("taskNamespaces[1:]:%s\n", taskNamespaces[1:])
 	appName := strings.Join(taskNamespaces[1:], ".")
 	upstream.ServiceName = appName
 	upstream.FrontendIp = defaultUpstreamIp.String()
@@ -188,7 +194,5 @@ func buildSwanUpstream(appEvent *AppEventNotify, defaultUpstreamIp net.IP, port 
 	upstream.FrontendProto = proto
 	upstream.Targets = make([]*Target, 0)
 	upstream.StaleMark = false
-	fmt.Printf("taskNum:%s\n", taskNum)
-	fmt.Printf("appName:%s\n", appName)
 	return &upstream
 }

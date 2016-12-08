@@ -16,9 +16,10 @@ func DefaultConfig() Config {
 
 	config := Config{
 		Listener: Listener{
-			Mode:        MULTIPORT_LISTENER_MODE,
-			IP:          ip,
-			DefaultPort: "3456",
+			Mode:         MULTIPORT_LISTENER_MODE,
+			IP:           ip,
+			DefaultPort:  "3456",
+			DefaultProto: "http",
 		},
 		Upstream: Upstream{
 			SourceType:   "consul",
@@ -28,6 +29,7 @@ func DefaultConfig() Config {
 		HttpHandler: HttpHandler{
 			FlushInterval:  time.Second * 1,
 			ClientIPHeader: "",
+			Domain:         "dataman-inc.com",
 		},
 		HttpProxyServer: HttpProxyServer{
 			ReadTimeout:  time.Second * 1,
@@ -82,14 +84,16 @@ type Upstream struct {
 }
 
 type Listener struct {
-	Mode        string
-	IP          net.IP
-	DefaultPort string
+	Mode         string
+	IP           net.IP
+	DefaultPort  string
+	DefaultProto string
 }
 
 type HttpHandler struct {
 	FlushInterval  time.Duration
 	ClientIPHeader string
+	Domain         string
 }
 
 type HttpProxyServer struct {

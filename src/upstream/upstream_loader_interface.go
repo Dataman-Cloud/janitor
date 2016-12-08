@@ -30,7 +30,7 @@ func InitAndStartUpstreamLoader(ctx context.Context, Config config.Config) (Upst
 		}
 	case "swan":
 		UpstreamLoaderKey = SWAN_UPSTREAM_LOADER_KEY
-		upstreamLoader, err = InitSwanUpstreamLoader(Config.Listener.IP, Config.Listener.DefaultPort)
+		upstreamLoader, err = InitSwanUpstreamLoader(Config.Listener.IP, Config.Listener.DefaultPort, Config.Listener.DefaultProto)
 		if err != nil {
 			return nil, err
 		}

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -10,8 +9,9 @@ import (
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
-	"github.com/Dataman-Cloud/janitor/src/loadbalance"
 	"github.com/Dataman-Cloud/janitor/src/upstream"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // httpProxy is a dynamic reverse proxy for HTTP and HTTPS protocols.
@@ -19,100 +19,71 @@ type httpProxy struct {
 	tr             http.RoundTripper
 	cfg            config.HttpHandler
 	listenerConfig config.Listener
-	loadbalancers  []*loadbalance.RoundRobinLoadBalancer
 	upstreamLoader upstream.UpstreamLoader
+	targetEntry    *url.URL
 }
 
-func NewSwanHTTPProxy(tr http.RoundTripper, cfg config.HttpHandler, configListener config.Listener, upstreamLoader upstream.UpstreamLoader) http.Handler {
+func NewHTTPProxy(tr http.RoundTripper, cfg config.HttpHandler, configListener config.Listener, upstream *upstream.Upstream, upstreamLoader upstream.UpstreamLoader) http.Handler {
+	var targetEntry *url.URL
+	// in MULTI_LISTENER_MODE
+	if upstream != nil {
+		targetEntry = upstream.NextTargetEntry()
+	}
+
 	return &httpProxy{
 		tr:             tr,
 		listenerConfig: configListener,
 		cfg:            cfg,
 		upstreamLoader: upstreamLoader,
-	}
-}
-
-func NewHTTPProxy(tr http.RoundTripper, cfg config.HttpHandler, configListener config.Listener, upstream *upstream.Upstream) http.Handler {
-	var loadbalancers []*loadbalance.RoundRobinLoadBalancer
-	loadbalancer := loadbalance.NewRoundRobinLoadBalancer()
-	loadbalancer.Seed(upstream)
-	loadbalancers = append(loadbalancers, loadbalancer)
-
-	return &httpProxy{
-		tr:             tr,
-		listenerConfig: configListener,
-		cfg:            cfg,
-		loadbalancers:  loadbalancers,
-	}
-}
-
-func (p *httpProxy) UpdateLoadBalancers() {
-	for {
-		<-p.upstreamLoader.ChangeNotify()
-		p.loadbalancers = p.loadbalancers[0:0]
-		for _, upstream := range p.upstreamLoader.List() {
-			loadbalancer := loadbalance.NewRoundRobinLoadBalancer()
-			loadbalancer.Seed(upstream)
-			p.loadbalancers = append(p.loadbalancers, loadbalancer)
-		}
+		targetEntry:    targetEntry,
 	}
 }
 
 func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("start handling request\n")
-	var targetEntry *url.URL
-	switch p.listenerConfig.Mode {
-	case config.MULTIPORT_LISTENER_MODE:
-		targetEntry = p.loadbalancers[0].Next().Entry()
-	case config.SINGLE_LISTENER_MODE:
-		go p.UpdateLoadBalancers()
+	if p.listenerConfig.Mode == config.SINGLE_LISTENER_MODE {
 		hostname := r.Header.Get("Host")
-		domain := "dataman-inc.com"
 		hostname = "http://nginx0051-01.defaultGroup.dataman-mesos.dataman-inc.com:80"
 		if hostname == "" {
+			log.Debug("hostname is null")
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
 		u, err := url.Parse(hostname)
 		if err != nil {
+			log.Debugf("fail to parse hostname[%s]", hostname)
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
-		host, port, _ := net.SplitHostPort(u.Host)
-		domainIndex := strings.Index(host, domain)
-		fmt.Printf("scheme:%s\n", u.Scheme)
-		fmt.Printf("host:%s\n", host)
-		fmt.Printf("port:%s\n", port)
+		host, _, _ := net.SplitHostPort(u.Host)
+		log.Debugf("Request from host:%s", host)
+
+		// get targetEntry based on hostname
+		domainIndex := strings.Index(host, p.cfg.Domain)
 		namespace := host[0 : domainIndex-1]
 		hostNamespaces := strings.Split(namespace, ".")
 		if len(hostNamespaces) == 4 {
+			// host is targeted at task level
 			serviceID := hostNamespaces[0]
 			serviceName := strings.Join(hostNamespaces[1:len(hostNamespaces)], ".")
-			fmt.Printf("serviceID:%s\n", serviceID)
-			fmt.Printf("serviceName:%s\n", serviceName)
 			upstream := p.upstreamLoader.Get(serviceName)
 			if upstream != nil {
 				target := upstream.GetTarget(serviceID)
 				if target != nil {
-					targetEntry = target.Entry()
+					p.targetEntry = target.Entry()
 				}
 			}
 		} else if len(hostNamespaces) == 3 {
+			// host is targeted at app level
 			serviceName := strings.Join(hostNamespaces, ".")
 			upstream := p.upstreamLoader.Get(serviceName)
 			if upstream != nil {
-				for _, lb := range p.loadbalancers {
-					if upstream.Equal(lb.Upstream) {
-						targetEntry = lb.Next().Entry()
-						break
-					}
-				}
+				p.targetEntry = upstream.NextTargetEntry()
 			}
 		}
 
 	}
-	fmt.Printf("targetEntry:%s\n", targetEntry)
-	if targetEntry == nil {
+	log.Debugf("targetEntry [%s] is found", p.targetEntry)
+	if p.targetEntry == nil {
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
@@ -125,7 +96,7 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var h http.Handler
 	switch {
 	case r.Header.Get("Upgrade") == "websocket":
-		h = newRawProxy(targetEntry)
+		h = newRawProxy(p.targetEntry)
 
 		// To use the filtered proxy use
 		// h = newWSProxy(t.URL)
@@ -133,10 +104,10 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Header.Get("Accept") == "text/event-stream":
 		// use the flush interval for SSE (server-sent events)
 		// must be > 0s to be effective
-		h = newHTTPProxy(targetEntry, p.tr, p.cfg.FlushInterval)
+		h = newHTTPProxy(p.targetEntry, p.tr, p.cfg.FlushInterval)
 
 	default:
-		h = newHTTPProxy(targetEntry, p.tr, time.Duration(0))
+		h = newHTTPProxy(p.targetEntry, p.tr, time.Duration(0))
 	}
 
 	//start := time.Now()

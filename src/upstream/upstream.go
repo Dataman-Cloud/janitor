@@ -2,8 +2,11 @@ package upstream
 
 import (
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/Dataman-Cloud/janitor/src/loadbalance"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -17,7 +20,8 @@ type Upstream struct {
 	FrontendIp    string // ip listen
 	FrontendProto string // http|https|tcp
 
-	Targets []*Target `json:"Target"`
+	Targets     []*Target `json:"Target"`
+	LoadBalance *loadbalance.RoundRobinLoadBalancer
 }
 
 type UpstreamKey struct {
@@ -190,4 +194,11 @@ func (u *Upstream) Remove(target *Target) {
 	if index >= 0 {
 		u.Targets = append(u.Targets[:index], u.Targets[index+1:]...)
 	}
+}
+
+func (u *Upstream) NextTargetEntry() *url.URL {
+	rr := u.LoadBalance
+	current := u.Targets[rr.NextIndex]
+	rr.NextIndex = (rr.NextIndex + 1) % len(u.Targets)
+	return current.Entry()
 }

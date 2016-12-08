@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/upstream"
-	"github.com/armon/go-proxyproto"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/armon/go-proxyproto"
 	consulApi "github.com/hashicorp/consul/api"
 )
 

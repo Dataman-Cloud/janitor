@@ -48,9 +48,6 @@ func NewServiceManager(ctx context.Context) *ServiceManager {
 	case upstream.SWAN_UPSTREAM_LOADER_KEY:
 		serviceManager.upstreamLoader = ctx.Value(upstream.SWAN_UPSTREAM_LOADER_KEY).(*upstream.SwanUpstreamLoader)
 	}
-
-	serviceManager.handlerFactory.UpstreamLoader = serviceManager.upstreamLoader
-
 	serviceManager.servicePods = make(map[upstream.UpstreamKey]*ServicePod)
 	serviceManager.ctx = ctx
 
