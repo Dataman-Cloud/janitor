@@ -53,9 +53,9 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 
 	for {
 		//var appEvent *AppEventNotify
-		log.Debug("upstreamLoader is listening app event...")
+		log.Debug("swanUpstreamLoader is listening app event...")
 		appEvent := <-swanUpstreamLoader.swanEventChan
-		log.Debug("upstreamLoader receive one app event:%s", appEvent)
+		log.Debug("swanUpstreamLoader receive one app event:%s", appEvent)
 		switch strings.ToLower(appEvent.Operation) {
 		case "add":
 			upstream := buildSwanUpstream(appEvent, swanUpstreamLoader.DefaultUpstreamIp, swanUpstreamLoader.Port, swanUpstreamLoader.Proto)
@@ -102,7 +102,9 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 						u.SetState(STATE_CHANGED)
 					} else {
 						u.StaleMark = true
+						swanUpstreamLoader.Remove(u)
 					}
+					break
 				}
 			}
 		}

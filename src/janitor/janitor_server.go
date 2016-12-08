@@ -92,8 +92,8 @@ func (server *JanitorServer) setupServiceManager() error {
 }
 
 func (server *JanitorServer) Run() {
-	switch strings.ToLower(server.config.Upstream.SourceType) {
-	case "consul":
+	switch strings.ToLower(server.config.Listener.Mode) {
+	case config.MULTIPORT_LISTENER_MODE:
 		for {
 			<-server.upstreamLoader.ChangeNotify()
 			fmt.Printf("upstream num:%s\n", len(server.upstreamLoader.List()))
@@ -129,7 +129,7 @@ func (server *JanitorServer) Run() {
 				}
 			}
 		}
-	case "swan":
+	case config.SINGLE_LISTENER_MODE:
 		log.Infof("create a default service pod:%s", server.listenerManager.DefaultUpstreamKey())
 		pod, err := server.serviceManager.FetchDefaultServicePod()
 		if err != nil {
