@@ -55,7 +55,7 @@ func (server *JanitorServer) UpstreamLoader() upstream.UpstreamLoader {
 	return server.upstreamLoader
 }
 
-func (server *JanitorServer) SwanEventChan() chan<- *upstream.AppEventNotify {
+func (server *JanitorServer) SwanEventChan() chan<- *upstream.TargetChangeEvent {
 	return server.UpstreamLoader().(*upstream.SwanUpstreamLoader).SwanEventChan()
 }
 

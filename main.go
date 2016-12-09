@@ -74,29 +74,29 @@ func main() {
 	ticker := time.NewTicker(time.Second * 30)
 	for {
 		<-ticker.C
-		log.Debug("sending appEvent")
-		appEvents := []*upstream.AppEventNotify{
+		log.Debug("sending targetChangeEvent")
+		targetChangeEvents := []*upstream.TargetChangeEvent{
 			{
-				Operation:     "add",
-				TaskName:      "0.nginx0051-01.defaultGroup.dataman-mesos",
-				AgentHostName: "192.168.1.162",
-				AgentPort:     "80",
+				Change:     "add",
+				TargetName: "0.nginx0051-01.defaultGroup.dataman-mesos",
+				TargetIP:   "192.168.1.162",
+				TargetPort: "80",
 			},
 			{
-				Operation:     "add",
-				TaskName:      "1.nginx0051-01.defaultGroup.dataman-mesos",
-				AgentHostName: "192.168.1.163",
-				AgentPort:     "80",
+				Change:     "add",
+				TargetName: "1.nginx0051-01.defaultGroup.dataman-mesos",
+				TargetIP:   "192.168.1.163",
+				TargetPort: "80",
 			},
 			//{
-			//	Operation:     "delete",
-			//	TaskName:      "0.nginx0051-01.defaultGroup.dataman-mesos",
-			//	AgentHostName: "192.168.1.162",
-			//	AgentPort:     "80",
+			//	Change:     "delete",
+			//	TargetName:      "0.nginx0051-01.defaultGroup.dataman-mesos",
+			//	TargetIP: "192.168.1.162",
+			//	TargetPort:     "80",
 			//},
 		}
-		for _, appEvent := range appEvents {
-			server.SwanEventChan() <- appEvent
+		for _, targetChangeEvent := range targetChangeEvents {
+			server.SwanEventChan() <- targetChangeEvent
 		}
 	}
 }

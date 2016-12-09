@@ -15,11 +15,11 @@ const (
 	SWAN_UPSTREAM_LOADER_KEY = "SwanUpstreamLoader"
 )
 
-type AppEventNotify struct {
-	Operation     string
-	TaskName      string
-	AgentHostName string
-	AgentPort     string
+type TargetChangeEvent struct {
+	Change     string
+	TargetName string
+	TargetIP   string
+	TargetPort string
 }
 
 type SwanUpstreamLoader struct {
@@ -27,7 +27,7 @@ type SwanUpstreamLoader struct {
 	Upstreams    []*Upstream
 	changeNotify chan bool
 	sync.Mutex
-	swanEventChan     chan *AppEventNotify
+	swanEventChan     chan *TargetChangeEvent
 	DefaultUpstreamIp net.IP
 	Port              string
 	Proto             string
@@ -40,7 +40,7 @@ func InitSwanUpstreamLoader(defaultUpstreamIp net.IP, defaultPort string, defaul
 	swanUpstreamLoader.DefaultUpstreamIp = defaultUpstreamIp
 	swanUpstreamLoader.Port = defaultPort
 	swanUpstreamLoader.Proto = defaultProto
-	swanUpstreamLoader.swanEventChan = make(chan *AppEventNotify, 1)
+	swanUpstreamLoader.swanEventChan = make(chan *TargetChangeEvent, 1)
 	go swanUpstreamLoader.Poll()
 	return swanUpstreamLoader, nil
 }
@@ -55,13 +55,13 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 	}()
 
 	for {
-		//var appEvent *AppEventNotify
-		appEvent := <-swanUpstreamLoader.swanEventChan
-		log.Debugf("SwanUpstreamLoader receive one app event:%s", appEvent)
-		switch strings.ToLower(appEvent.Operation) {
+		//var targetChangeEvent *TargetChangeEvent
+		targetChangeEvent := <-swanUpstreamLoader.swanEventChan
+		log.Debugf("SwanUpstreamLoader receive one app event:%s", targetChangeEvent)
+		switch strings.ToLower(targetChangeEvent.Change) {
 		case "add":
-			upstream := buildSwanUpstream(appEvent, swanUpstreamLoader.DefaultUpstreamIp, swanUpstreamLoader.Port, swanUpstreamLoader.Proto)
-			target := buildSwanTarget(appEvent)
+			upstream := buildSwanUpstream(targetChangeEvent, swanUpstreamLoader.DefaultUpstreamIp, swanUpstreamLoader.Port, swanUpstreamLoader.Proto)
+			target := buildSwanTarget(targetChangeEvent)
 			upstreamDuplicated := false
 			for _, u := range swanUpstreamLoader.Upstreams {
 				if u.FieldsEqual(upstream) {
@@ -104,8 +104,8 @@ func (swanUpstreamLoader *SwanUpstreamLoader) Poll() {
 				log.Debugf("Upstream [%s] created", upstream.ServiceName)
 			}
 		case "delete":
-			upstream := buildSwanUpstream(appEvent, swanUpstreamLoader.DefaultUpstreamIp, swanUpstreamLoader.Port, swanUpstreamLoader.Proto)
-			target := buildSwanTarget(appEvent)
+			upstream := buildSwanUpstream(targetChangeEvent, swanUpstreamLoader.DefaultUpstreamIp, swanUpstreamLoader.Port, swanUpstreamLoader.Proto)
+			target := buildSwanTarget(targetChangeEvent)
 			for _, u := range swanUpstreamLoader.Upstreams {
 				if u.FieldsEqual(upstream) {
 					u.Remove(target)
@@ -127,7 +127,7 @@ func (swanUpstreamLoader *SwanUpstreamLoader) List() []*Upstream {
 	return swanUpstreamLoader.Upstreams
 }
 
-func (swanUpstreamLoader *SwanUpstreamLoader) SwanEventChan() chan<- *AppEventNotify {
+func (swanUpstreamLoader *SwanUpstreamLoader) SwanEventChan() chan<- *TargetChangeEvent {
 	return swanUpstreamLoader.swanEventChan
 }
 
@@ -169,24 +169,24 @@ func (swanUpstreamLoader *SwanUpstreamLoader) ChangeNotify() <-chan bool {
 	return swanUpstreamLoader.changeNotify
 }
 
-func buildSwanTarget(appEvent *AppEventNotify) *Target {
+func buildSwanTarget(targetChangeEvent *TargetChangeEvent) *Target {
 	// create a new target
 	var target Target
-	taskNamespaces := strings.Split(appEvent.TaskName, ".")
+	taskNamespaces := strings.Split(targetChangeEvent.TargetName, ".")
 	taskNum := taskNamespaces[0]
 	appName := strings.Join(taskNamespaces[1:], ".")
-	target.Address = appEvent.AgentHostName
+	target.Address = targetChangeEvent.TargetIP
 	target.ServiceName = appName
 	target.ServiceID = taskNum
-	target.ServiceAddress = appEvent.AgentHostName
-	target.ServicePort = appEvent.AgentPort
+	target.ServiceAddress = targetChangeEvent.TargetIP
+	target.ServicePort = targetChangeEvent.TargetPort
 	return &target
 }
 
-func buildSwanUpstream(appEvent *AppEventNotify, defaultUpstreamIp net.IP, port string, proto string) *Upstream {
+func buildSwanUpstream(targetChangeEvent *TargetChangeEvent, defaultUpstreamIp net.IP, port string, proto string) *Upstream {
 	// create a new upstream
 	var upstream Upstream
-	taskNamespaces := strings.Split(appEvent.TaskName, ".")
+	taskNamespaces := strings.Split(targetChangeEvent.TargetName, ".")
 	appName := strings.Join(taskNamespaces[1:], ".")
 	upstream.ServiceName = appName
 	upstream.FrontendIp = defaultUpstreamIp.String()
