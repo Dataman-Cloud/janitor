@@ -2,8 +2,11 @@ package upstream
 
 import (
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/Dataman-Cloud/janitor/src/loadbalance"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -17,7 +20,8 @@ type Upstream struct {
 	FrontendIp    string // ip listen
 	FrontendProto string // http|https|tcp
 
-	Targets []*Target `json:"Target"`
+	Targets     []*Target `json:"Target"`
+	LoadBalance *loadbalance.RoundRobinLoadBalancer
 }
 
 type UpstreamKey struct {
@@ -97,6 +101,16 @@ func (u *Upstream) Equal(u1 *Upstream) bool {
 	return fieldsEqual && targetsSizeEqual && targetsEqual
 }
 
+func (u *Upstream) GetTarget(serviceID string) *Target {
+	for _, t := range u.Targets {
+		if t.ServiceID == serviceID {
+			return t
+			break
+		}
+	}
+	return nil
+}
+
 func (u *Upstream) FieldsEqualButTargetsDiffer(u1 *Upstream) bool {
 	fieldsEqual := u.ServiceName == u1.ServiceName &&
 		u.FrontendPort == u1.FrontendPort &&
@@ -167,4 +181,24 @@ func (u *Upstream) StateIs(expectState UpstreamStateEnum) bool {
 
 func (u *Upstream) Key() UpstreamKey {
 	return UpstreamKey{Proto: u.FrontendProto, Ip: u.FrontendIp, Port: u.FrontendPort}
+}
+
+func (u *Upstream) Remove(target *Target) {
+	index := -1
+	for k, v := range u.Targets {
+		if v.Equal(target) {
+			index = k
+			break
+		}
+	}
+	if index >= 0 {
+		u.Targets = append(u.Targets[:index], u.Targets[index+1:]...)
+	}
+}
+
+func (u *Upstream) NextTargetEntry() *url.URL {
+	rr := u.LoadBalance
+	current := u.Targets[rr.NextIndex]
+	rr.NextIndex = (rr.NextIndex + 1) % len(u.Targets)
+	return current.Entry()
 }

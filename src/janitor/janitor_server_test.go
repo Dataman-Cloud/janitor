@@ -7,8 +7,9 @@ import (
 	//"github.com/Dataman-Cloud/janitor/src/service"
 	"github.com/Dataman-Cloud/janitor/src/upstream"
 
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewJanitor(t *testing.T) {
@@ -21,7 +22,7 @@ func TestInit(t *testing.T) {
 	janitorServer.Init()
 	assert.NotNil(t, janitorServer.listenerManager)
 	assert.NotNil(t, janitorServer.upstreamLoader)
-	assert.NotNil(t, janitorServer.handerFactory)
+	assert.NotNil(t, janitorServer.handlerFactory)
 	assert.NotNil(t, janitorServer.serviceManager)
 }
 
@@ -45,7 +46,7 @@ func TestSetupHandlerFactory(t *testing.T) {
 	janitorServer := NewJanitorServer(config.DefaultConfig())
 	assert.Nil(t, janitorServer.ctx.Value(handler.HANDLER_FACTORY_KEY))
 	janitorServer.setupHandlerFactory()
-	assert.NotNil(t, janitorServer.handerFactory)
+	assert.NotNil(t, janitorServer.handlerFactory)
 	assert.NotNil(t, janitorServer.ctx.Value(handler.HANDLER_FACTORY_KEY))
 }
 

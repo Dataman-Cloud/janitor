@@ -4,12 +4,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Dataman-Cloud/janitor/src/config"
 	"github.com/Dataman-Cloud/janitor/src/janitor"
+	"github.com/Dataman-Cloud/janitor/src/upstream"
 
 	log "github.com/Sirupsen/logrus"
-
 	//"github.com/urfave/cli"
 )
 
@@ -47,6 +48,61 @@ func RegisterSignalHandler() {
 	}()
 }
 
+//This is for swan
+func main() {
+	janitorConfig := LoadConfig()
+	janitorConfig.Listener.Mode = config.SINGLE_LISTENER_MODE
+	janitorConfig.Listener.DefaultPort = "9998"
+	janitorConfig.HttpHandler.Domain = "dataman-inc.com"
+	janitorUpstream := config.Upstream{
+		SourceType: "swan",
+	}
+	janitorConfig.Upstream = janitorUpstream
+
+	TuneGolangProcess()
+	SetupLogger()
+
+	server := janitor.NewJanitorServer(janitorConfig)
+	go server.Init().Run()
+	//cleanFuncs = append(cleanFuncs, func() {
+	//	server.Shutdown()
+	//})
+
+	//<-stopWait
+	//register signal handler
+
+	ticker := time.NewTicker(time.Second * 30)
+	for {
+		<-ticker.C
+		log.Debug("sending appEvent")
+		appEvents := []*upstream.AppEventNotify{
+			{
+				Operation:     "add",
+				TaskName:      "0.nginx0051-01.defaultGroup.dataman-mesos",
+				AgentHostName: "192.168.1.162",
+				AgentPort:     "80",
+			},
+			{
+				Operation:     "add",
+				TaskName:      "1.nginx0051-01.defaultGroup.dataman-mesos",
+				AgentHostName: "192.168.1.163",
+				AgentPort:     "80",
+			},
+			//{
+			//	Operation:     "delete",
+			//	TaskName:      "0.nginx0051-01.defaultGroup.dataman-mesos",
+			//	AgentHostName: "192.168.1.162",
+			//	AgentPort:     "80",
+			//},
+		}
+		for _, appEvent := range appEvents {
+			server.SwanEventChan() <- appEvent
+		}
+	}
+}
+
+/*
+This is for borg
 func main() {
 	config := LoadConfig()
 
@@ -62,3 +118,4 @@ func main() {
 	//<-stopWait
 	//register signal handler
 }
+*/

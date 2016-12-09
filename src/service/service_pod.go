@@ -32,24 +32,33 @@ type ServicePod struct {
 	lock               sync.Mutex
 }
 
-func NewServicePod(upstream *upstream.Upstream, manager *ServiceManager) (*ServicePod, error) {
+func NewServicePod(u *upstream.Upstream, manager *ServiceManager) (*ServicePod, error) {
 	pod := &ServicePod{
-		Key: upstream.Key(),
+		Key: u.Key(),
 
 		stopCh:   make(chan bool, 1),
-		upstream: upstream,
+		upstream: u,
 		Manager:  manager,
 	}
+	if upstream.UpstreamLoaderKey == upstream.CONSUL_UPSTREAM_LOADER_KEY {
+		pod.sessionRenewTicker = time.NewTicker(SESSION_RENEW_INTERVAL)
+		err := pod.setupTTLSession()
+		if err != nil {
+			return nil, err
+		}
 
-	pod.sessionRenewTicker = time.NewTicker(SESSION_RENEW_INTERVAL)
-	err := pod.setupTTLSession()
-	if err != nil {
-		return nil, err
+		pod.keepSessionAlive()
+		pod.LogActivity(fmt.Sprintf("[INFO] preparing serving application %s at %s", u.ServiceName, u.Key().ToString()))
 	}
 
-	pod.keepSessionAlive()
-	pod.LogActivity(fmt.Sprintf("[INFO] preparing serving application %s at %s", upstream.ServiceName, upstream.Key().ToString()))
+	return pod, nil
+}
 
+func NewSingleServicePod(manager *ServiceManager) (*ServicePod, error) {
+	pod := &ServicePod{
+		stopCh:  make(chan bool, 1),
+		Manager: manager,
+	}
 	return pod, nil
 }
 
@@ -100,8 +109,9 @@ func (pod *ServicePod) Invalid() {
 	for _, t := range pod.upstream.Targets {
 		targets = append(targets, t.ToString())
 	}
-
-	pod.LogActivity(fmt.Sprintf("[INFO] changing application %s to targets [%s]", pod.upstream.ServiceName, strings.Join(targets, "  ")))
+	if upstream.UpstreamLoaderKey == upstream.CONSUL_UPSTREAM_LOADER_KEY {
+		pod.LogActivity(fmt.Sprintf("[INFO] changing application %s to targets [%s]", pod.upstream.ServiceName, strings.Join(targets, "  ")))
+	}
 }
 
 func (pod *ServicePod) LogActivity(activity string) {
@@ -137,7 +147,9 @@ func (pod *ServicePod) LogActivity(activity string) {
 }
 
 func (pod *ServicePod) Run() {
-	pod.RenewPodEntries()
+	if upstream.UpstreamLoaderKey == upstream.CONSUL_UPSTREAM_LOADER_KEY {
+		pod.RenewPodEntries()
+	}
 	go func() {
 		log.Infof("start runing pod now %s", pod.Key)
 		err := pod.HttpServer.Serve(pod.Listener)

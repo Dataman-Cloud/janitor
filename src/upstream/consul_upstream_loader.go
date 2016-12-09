@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Dataman-Cloud/janitor/src/loadbalance"
 	"github.com/Dataman-Cloud/janitor/src/util"
 
 	log "github.com/Sirupsen/logrus"
@@ -220,6 +221,10 @@ func buildUpstream(serviceName string, tags []string, serviceEntries []*consulAp
 	upstream.Targets = make([]*Target, 0)
 	upstream.StaleMark = false
 	upstream.SetState(STATE_NEW)
+	//add loadBalance in upstream
+	loadBalance := loadbalance.NewRoundRobinLoadBalancer()
+	loadBalance.Seed()
+	upstream.LoadBalance = loadBalance
 
 	for _, service := range serviceEntries {
 		var target Target

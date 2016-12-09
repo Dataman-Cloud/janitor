@@ -41,40 +41,66 @@ func NewServiceManager(ctx context.Context) *ServiceManager {
 	listenerManager_ := ctx.Value(listener.LISTENER_MANAGER_KEY)
 	serviceManager.listenerManager = listenerManager_.(*listener.Manager)
 
-	serviceManager.upstreamLoader = ctx.Value(upstream.CONSUL_UPSTREAM_LOADER_KEY).(*upstream.ConsulUpstreamLoader)
-	serviceManager.consulClient = serviceManager.upstreamLoader.(*upstream.ConsulUpstreamLoader).ConsulClient
-
+	switch upstream.UpstreamLoaderKey {
+	case upstream.CONSUL_UPSTREAM_LOADER_KEY:
+		serviceManager.upstreamLoader = ctx.Value(upstream.CONSUL_UPSTREAM_LOADER_KEY).(*upstream.ConsulUpstreamLoader)
+		serviceManager.consulClient = serviceManager.upstreamLoader.(*upstream.ConsulUpstreamLoader).ConsulClient
+	case upstream.SWAN_UPSTREAM_LOADER_KEY:
+		serviceManager.upstreamLoader = ctx.Value(upstream.SWAN_UPSTREAM_LOADER_KEY).(*upstream.SwanUpstreamLoader)
+	}
 	serviceManager.servicePods = make(map[upstream.UpstreamKey]*ServicePod)
 	serviceManager.ctx = ctx
 
 	return serviceManager
 }
 
-func (manager *ServiceManager) ForkOrFetchNewServicePod(upstream *upstream.Upstream) (*ServicePod, error) {
+func (manager *ServiceManager) FetchDefaultServicePod() (*ServicePod, error) {
+	manager.forkMutex.Lock()
+	defer manager.forkMutex.Unlock()
+	pod, err := NewSingleServicePod(manager)
+	if err != nil {
+		fmt.Println("fails to setup default service pod")
+		return nil, err
+	}
+	// fetch default listener then assign it to pod
+	pod.Listener = manager.listenerManager.DefaultListener()
+
+	// fetch a http handler then assign it to pod
+	var u *upstream.Upstream
+	pod.HttpServer = &http.Server{Handler: manager.handlerFactory.HttpHandler(u)}
+
+	manager.servicePods[manager.listenerManager.DefaultUpstreamKey()] = pod
+	return pod, nil
+}
+
+func (manager *ServiceManager) ForkOrFetchNewServicePod(us *upstream.Upstream) (*ServicePod, error) {
 	manager.forkMutex.Lock()
 	defer manager.forkMutex.Unlock()
 
-	pod, found := manager.servicePods[upstream.Key()]
+	pod, found := manager.servicePods[us.Key()]
 	if found {
 		return pod, nil
 	}
 
-	pod, err := NewServicePod(upstream, manager)
+	pod, err := NewServicePod(us, manager)
 	if err != nil {
 		return nil, err
 	}
 
 	// fetch a listener then assign it to pod
-	pod.Listener, err = manager.listenerManager.FetchListener(upstream.Key())
+	pod.Listener, err = manager.listenerManager.FetchListener(us.Key())
 	if err != nil {
-		pod.LogActivity(fmt.Sprintf("[ERRO] fetch a listener error: %s", err.Error()))
+		if upstream.UpstreamLoaderKey == upstream.CONSUL_UPSTREAM_LOADER_KEY {
+			pod.LogActivity(fmt.Sprintf("[ERRO] fetch a listener error: %s", err.Error()))
+		}
+		fmt.Sprintf("[ERRO] fetch a listener error:%s", err.Error())
 		return nil, err
 	}
 
 	// fetch a http handler then assign it to pod
-	pod.HttpServer = &http.Server{Handler: manager.handlerFactory.HttpHandler(upstream)}
+	pod.HttpServer = &http.Server{Handler: manager.handlerFactory.HttpHandler(us)}
 
-	manager.servicePods[upstream.Key()] = pod
+	manager.servicePods[us.Key()] = pod
 	return pod, nil
 }
 
